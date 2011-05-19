@@ -163,74 +163,6 @@
         return [a*c-b*d,a*d+b*c];
     }
 
-    // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
-    function dibujar(ctx,x0,x1,y0,y1) {
-        var w = document.getElementById('canvas').width;
-        var h = document.getElementById('canvas').height;
-        ctx.clearRect ( 0 , 0 , w , h );
-
-        var diffX = x1-x0;
-        var diffY = y1-y0;
-
-        var stepX = diffX/w;
-        var stepY = diffY/h;
-
-        var particles = [];
-        particles[0] = new particle(Math.random(),Math.random(),1);;
-        var i = 1; // i-esima particula
-
-        for(var c = 0; c < 100; c++) {
-            var nueva = true;
-            var p = new particle(Math.random(),Math.random(),1);
-            var crust = Math.abs(p.x*2-1) > 0.9 || Math.abs(p.y*2-1) > 0.9;
-            p.d = crust ? 1 : 2;
-            for(var j = 0; j < i; j++) {
-                //alert(dist(particles[j],p) + " step: " + stepX);
-                if(dist(particles[j],p) < stepX*5 && !crust) {
-                    particles[j].d =  particles[j].d+1;
-                    nueva = false;
-                    break;
-                }
-            }
-            if(nueva) {
-                particles[i] = p;
-                i++;
-            }
-        }
-
-        for(var i = 0; i < particles.length; i++) {
-            var x = particles[i].x*2-1;
-            var y = particles[i].y*2-1;
-            var px = Math.ceil((x-x0)*w/diffX);
-            var py = Math.ceil((y-y0)*h/diffY);
-
-            var c = Math.abs(x)>0.99 || Math.abs(y)>0.99 ? 0: 50;
-
-            var r = c+100;
-            var g = c+50;
-            var b = c+20;
-            ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
-
-            //artisan.drawRectangle('canvas', px, h-py, particles[i].d, particles[i].d, ctx.fillStyle);
-            artisan.drawCircle('canvas', px, h-py, particles[i].d, ctx.fillStyle);
-        }
-
-        document.getElementById('minX').innerHTML = MIN;
-        document.getElementById('maxX').innerHTML = MAX;
-        document.getElementById('maxY').innerHTML = MAXY;
-        document.getElementById('minY').innerHTML = MINY;
-
-    }
-
-    function start() {
-        var canvas = document.getElementById("canvas");
-        ctx = canvas.getContext("2d");
-        init(canvas);
-
-        dibujar(ctx,MIN,MAX,MINY,MAXY);
-
-    }
-
     function point(x,y) {
         this.x = x
         this.y = y
@@ -238,7 +170,7 @@
 
     // cada particula cuenta con multiples puntos
     function particle(x,y) {
-        var p = point(x,y);
+        var p = new point(x,y);
         this.a = [p];
     }
 
@@ -261,6 +193,60 @@
         var d = Math.sqrt( d1*d1 + d2*d2 );
         return d;
     }
+
+    // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
+    function dibujar(ctx,x0,x1,y0,y1) {
+        var w = document.getElementById('canvas').width;
+        var h = document.getElementById('canvas').height;
+        ctx.clearRect ( 0 , 0 , w , h );
+
+        var diffX = x1-x0;
+        var diffY = y1-y0;
+
+        var stepX = diffX/w;
+        var stepY = diffY/h;
+
+        var particles = [];
+
+        for(var i = 0; i < 200; i++) {
+            particles[i] = new particle(Math.random(),Math.random());
+        }
+
+        for(var i = 0; i < particles.length; i++) {
+            for(var j = 0; j < particles[i].a.length; j++) {
+                var x = particles[i].a[j].x*2-1;
+                var y = particles[i].a[j].y*2-1;
+                var px = Math.ceil((x-x0)*w/diffX);
+                var py = Math.ceil((y-y0)*h/diffY);
+
+                var r = 150;
+                var g = 100;
+                var b = 50;
+                ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
+
+                ctx.fillRect(px,h-py,1,1);  
+            }
+        }
+
+        document.getElementById('minX').innerHTML = MIN;
+        document.getElementById('maxX').innerHTML = MAX;
+        document.getElementById('maxY').innerHTML = MAXY;
+        document.getElementById('minY').innerHTML = MINY;
+
+    }
+
+    function start() {
+        var canvas = document.getElementById("canvas");
+        ctx = canvas.getContext("2d");
+        init(canvas);
+
+        dibujar(ctx,MIN,MAX,MINY,MAXY);
+
+    }
+
+
+
+    
 
     /*function genParticles() {
         var particles = [];
@@ -301,7 +287,7 @@
     <br />
 
     <div id="canvas-container" style="float:left;">
-        <canvas id="canvas" style="background-color:white;" width="800" height="800"></canvas>
+        <canvas id="canvas" style="background-color:black;" width="800" height="800"></canvas>
     </div>
 
     <div id="maxY" style="font-size:30px;"></div>
