@@ -209,22 +209,35 @@
         var particles = [];
 
         for(var i = 0; i < 200; i++) {
-            particles[i] = new particle(Math.random(),Math.random());
+            var x = Math.random()*2-1;
+            var y = Math.random()*2-1;
+            var px = Math.ceil((x-x0)*w/diffX);
+            var py = Math.ceil((y-y0)*h/diffY);
+            particles[i] = new particle(px,py);
         }
 
-        for(var i = 0; i < particles.length; i++) {
-            for(var j = 0; j < particles[i].a.length; j++) {
-                var x = particles[i].a[j].x*2-1;
-                var y = particles[i].a[j].y*2-1;
-                var px = Math.ceil((x-x0)*w/diffX);
-                var py = Math.ceil((y-y0)*h/diffY);
+        for(var t = 0; t < 10; t++) {
+            for(var i = 0; i < 200; i++) {
+                var a = particles[i].a[0];
+                particles[i].add(a.x+t,a.y);
+            }
+            alert(t);
 
-                var r = 150;
-                var g = 100;
-                var b = 50;
-                ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
+            for(var i = 0; i < particles.length; i++) {
+                for(var j = 0; j < particles[i].a.length; j++) {
+                    var x = particles[i].a[j].x;
+                    var y = particles[i].a[j].y;
+                    var px = x;
+                    var py = y;
 
-                ctx.fillRect(px,h-py,1,1);  
+                    var r = 150;
+                    var g = 100;
+                    var b = 50;
+                    ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
+
+                    ctx.fillRect(px,h-py,1,1);  
+                    ctx.fillRect(px+1,h-py,1,1);  
+                }
             }
         }
 
