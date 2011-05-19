@@ -1,0 +1,301 @@
+<html>
+
+<head>
+<title>Practica 1</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="artisan-min.js"></script>
+
+<script type="text/javascript">
+
+    var MIN = -1;
+    var MAX = 1;
+    var MINY = -1;
+    var MAXY = 1;
+
+    var STEP = (MAX-MIN)/1000;
+
+    var click;
+    var xPos, yPos;
+    var ctx;
+    var escala = 2;
+    var x, y;         // coords actuales al hacer click con el mouse onButtonDown()
+    //var particles;
+
+    function reset() {
+        MIN = -1;
+        MAX = 1;
+        MINY = -1;
+        MAXY = 1;
+        document.getElementById('creal').value = '0.4';
+        document.getElementById('cimag').value = '0.0';
+        document.getElementById('iterk').value = '12';
+        dibujar(ctx,MIN,MAX,MINY,MAXY);
+    }
+
+    function handle(delta) {
+
+            var diff = MAX-MIN;
+            var diffY = MAXY-MINY;
+            var xValue = MIN + diff*xPos/document.getElementById('canvas').width;
+            var yValue = MINY + diffY*(document.getElementById('canvas').height-yPos)/document.getElementById('canvas').height;
+
+            if(delta > 0) {
+                var ventana = diff/escala;
+                var ventanaY = diffY/escala;
+
+                MIN = xValue - (xValue-MIN)/escala;
+                MAX = MIN + ventana;
+
+                MINY = yValue - (yValue-MINY)/escala;
+                MAXY = MINY + ventanaY;
+
+            }
+            else {
+                var ventana = diff;
+                var ventanaY = diffY;
+
+                MIN = xValue - escala*(xValue-MIN);
+                MAX = MIN + escala*ventana;
+                MINY = yValue - escala*(yValue-MINY);
+                MAXY = MINY + escala*ventanaY;
+            }
+            dibujar(ctx,MIN,MAX,MINY,MAXY);
+    }
+
+     
+    function wheel(event){
+            var delta = 0;
+            if (!event) event = window.event;
+            if (event.wheelDelta) {
+                    delta = event.wheelDelta/120;
+                    if (window.opera) delta = -delta;
+            } else if (event.detail) {
+                    delta = -event.detail/3;
+            }f
+            if (delta)
+                    handle(delta);
+    }
+
+    function dib(e)
+    {
+        dibujar(ctx,MIN,MAX,MINY,MAXY);
+    }
+
+    function findPos(obj) {
+        var curleft = curtop = 0;
+        if (obj.offsetParent) {
+            do {
+                curleft += obj.offsetLeft;
+                curtop += obj.offsetTop;
+            } while (obj = obj.offsetParent);
+            return { x: curleft, y: curtop };
+        }
+    }
+
+    function onMouseMove(e)
+    {
+        var pos = findPos(this);
+        xPos = e.pageX - pos.x;
+        yPos = e.pageY - pos.y;
+
+        if(click) {
+            var diff = MAX-MIN;
+            var diffY = MAXY-MINY;
+            var xValue = MIN + diff*xPos/document.getElementById('canvas').width;
+            var yValue = MINY + diffY*(document.getElementById('canvas').height-yPos)/document.getElementById('canvas').height;
+            
+            MIN  = MIN  - (xValue-x);
+            MAX  = MAX  - (xValue-x);
+            MINY = MINY - (yValue-y);
+            MAXY = MAXY - (yValue-y);
+
+            dibujar(ctx,MIN,MAX,MINY,MAXY);
+        }
+    }
+
+    function onButtonDown(e)
+    {
+        click = true;
+        var pos = findPos(this);
+        xPos = e.pageX - pos.x;
+        yPos = e.pageY - pos.y;
+
+        document.getElementById('canvas').style.cursor='pointer';
+
+        var diff = MAX-MIN;
+        var diffY = MAXY-MINY;
+        x = MIN + diff*xPos/document.getElementById('canvas').width;
+        y = MINY + diffY*(document.getElementById('canvas').height-yPos)/document.getElementById('canvas').height;
+        
+    }
+
+    function onButtonUp(e)
+    {
+        click = false;
+        document.getElementById('canvas').style.cursor='default';
+    }    
+        
+    function init(canvas) {
+        try {
+            if (canvas.addEventListener)
+                    canvas.addEventListener('DOMMouseScroll', wheel, false);
+            canvas.onmousewheel = wheel;
+            canvas.onmousemove = onMouseMove;
+
+            canvas.onmousedown=onButtonDown;
+            canvas.onmouseup=onButtonUp;
+            document.getElementById('creal').onchange = dib;
+            document.getElementById('cimag').onchange = dib;
+            document.getElementById('iterk').onchange = dib;
+            //particles = genParticles();
+
+        } catch (e) {
+            alert("Problema con canvas!");
+        }
+    }
+
+    function f(a,x) {
+        return a*x*(1-x);
+    }
+
+    function vabs(x,y) {
+        return Math.sqrt(x*x + y*y);
+    }
+
+    function prod(a,b,c,d) {
+        return [a*c-b*d,a*d+b*c];
+    }
+
+    // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
+    function dibujar(ctx,x0,x1,y0,y1) {
+        var w = document.getElementById('canvas').width;
+        var h = document.getElementById('canvas').height;
+        ctx.clearRect ( 0 , 0 , w , h );
+
+        var diffX = x1-x0;
+        var diffY = y1-y0;
+
+        var stepX = diffX/w;
+        var stepY = diffY/h;
+
+        var particles = [];
+        particles[0] = new particle(Math.random(),Math.random(),1);;
+        var i = 1; // i-esima particula
+
+        for(var c = 0; c < 10000; c++) {
+            var nueva = true;
+            var p = new particle(Math.random(),Math.random(),1);
+            for(var j = 0; j < i; j++) {
+                //alert(dist(particles[j],p) + " step: " + stepX);
+                if(dist(particles[j],p) < stepX) {
+                    particles[j].d = particles[j].d+1;
+                    nueva = false;
+                    break;
+                }
+            }
+            if(nueva) {
+                particles[i] = p;
+                i++;
+            }
+        }
+
+        for(var i = 0; i < particles.length; i++) {
+            var x = particles[i].x*2-1;
+            var y = particles[i].y*2-1;
+            var px = Math.ceil((x-x0)*w/diffX);
+            var py = Math.ceil((y-y0)*h/diffY);
+
+            var r = 240;
+            var g = 220;
+            var b = 40;
+            ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
+
+            artisan.drawCircle('canvas', px, h-py, particles[i].d, ctx.fillStyle);
+        }
+
+        document.getElementById('minX').innerHTML = MIN;
+        document.getElementById('maxX').innerHTML = MAX;
+        document.getElementById('maxY').innerHTML = MAXY;
+        document.getElementById('minY').innerHTML = MINY;
+
+    }
+
+    function start() {
+        var canvas = document.getElementById("canvas");
+        ctx = canvas.getContext("2d");
+        init(canvas);
+
+        dibujar(ctx,MIN,MAX,MINY,MAXY);
+
+    }
+
+    function particle(x,y,d) {
+        this.x = x
+        this.y = y
+        this.d = d
+    } 
+
+    function dist(p1,p2) {
+        var d1 = Math.abs(p1.x - p2.x);
+        var d2 = Math.abs(p1.y - p2.y);
+        var d = Math.sqrt( d1*d1 + d2*d2 );
+        return d;
+    }
+
+    function genParticles() {
+        var particles = [];
+
+        var maxim = 0;
+        var i = 0; // i-esima particula
+        for(var c = 0; c < 50000; c++) {
+            var p = new particle(Math.random(),Math.random(),1);
+            for(var j = 0; j < i; j++) {
+                if(dist(particles[j],p) < 1) {
+                    particles[j].d = particles[j].d+1;
+                    var maxim = Math.max(particles[j].d,max);
+                }
+                else{
+                    particles[i] = p;
+                    i++;
+                }
+            }
+        }
+        alert(maxim);
+
+        return particles;
+    }
+
+
+</script>
+
+
+</head>
+
+
+<body onload="start()" style="background-color:rgb(150,150,150);">
+
+    <div style="text-align:center; font-size:30px">Conjunto de Juli&aacute;</div>
+
+    <input type="button" onclick="reset()" value="Reset" />
+    c:<input id="creal" type="text" value="0.4" />
+    <input id="cimag" type="text" value="0.0" /> i
+    k:<input id="iterk" type="text" value="12" />
+    
+    <br />
+
+    <div id="canvas-container" style="float:left;">
+        <canvas id="canvas" style="background-color:black;" width="800" height="800"></canvas>
+    </div>
+
+    <div id="maxY" style="font-size:30px;"></div>
+    <div id="minY" style="font-size:30px; position:absolute; left:810px; top:820px;"></div>
+
+    <div id="minX" style="font-size:30px; position:absolute; left:10px; top:870px;"></div>
+    <div id="maxX" style="font-size:30px; position:absolute; left:790px; top:870px;"></div>
+
+
+</body>
+
+</html>
+
