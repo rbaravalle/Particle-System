@@ -169,8 +169,10 @@
     }
 
     // cada particula cuenta con multiples puntos
-    function particle(x,y) {
+    function particle(x,y,vx,vy) {
         var p = new point(x,y);
+        this.vx = vx;
+        this.vy = vy;
         this.a = [p];
     }
 
@@ -211,17 +213,29 @@
         for(var i = 0; i < 200; i++) {
             var x = Math.random()*2-1;
             var y = Math.random()*2-1;
+
+            var vx = Math.random()*2-1;
+            var vy = Math.random()*2-1;
+
             var px = Math.ceil((x-x0)*w/diffX);
             var py = Math.ceil((y-y0)*h/diffY);
-            particles[i] = new particle(px,py);
+            particles[i] = new particle(px,py,vx,vy);
         }
 
         for(var t = 0; t < 10; t++) {
-            for(var i = 0; i < 200; i++) {
+            for(var i = 0; i < particles.length; i++) {
                 var a = particles[i].a[0];
-                particles[i].add(a.x+t,a.y);
+                particles[i].add(a.x+t*Math.round(particles[i].vx),a.y+t*Math.round(particles[i].vy));
             }
-            alert(t);
+
+            /*for(var i = 0; i < particles.length; i++) {
+                for(var j = 0; j < particles.length; j++) {
+                    if(particles[i].intersecta(particles[j]);
+                        particles[i].fusion(particles[j]);
+                }
+            }*/
+
+            //alert(t);
 
             for(var i = 0; i < particles.length; i++) {
                 for(var j = 0; j < particles[i].a.length; j++) {
