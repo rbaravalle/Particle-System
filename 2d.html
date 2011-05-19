@@ -27,8 +27,6 @@
         MAX = 1;
         MINY = -1;
         MAXY = 1;
-        document.getElementById('creal').value = '0.4';
-        document.getElementById('cimag').value = '0.0';
         document.getElementById('iterk').value = '12';
         dibujar(ctx,MIN,MAX,MINY,MAXY);
     }
@@ -145,8 +143,6 @@
 
             canvas.onmousedown=onButtonDown;
             canvas.onmouseup=onButtonUp;
-            document.getElementById('creal').onchange = dib;
-            document.getElementById('cimag').onchange = dib;
             document.getElementById('iterk').onchange = dib;
             //particles = genParticles();
 
@@ -183,12 +179,12 @@
         particles[0] = new particle(Math.random(),Math.random(),1);;
         var i = 1; // i-esima particula
 
-        for(var c = 0; c < 10000; c++) {
+        for(var c = 0; c < 2000; c++) {
             var nueva = true;
             var p = new particle(Math.random(),Math.random(),1);
             for(var j = 0; j < i; j++) {
                 //alert(dist(particles[j],p) + " step: " + stepX);
-                if(dist(particles[j],p) < stepX) {
+                if(dist(particles[j],p) < stepX*10) {
                     particles[j].d = particles[j].d+1;
                     nueva = false;
                     break;
@@ -206,11 +202,12 @@
             var px = Math.ceil((x-x0)*w/diffX);
             var py = Math.ceil((y-y0)*h/diffY);
 
-            var r = 240;
-            var g = 220;
+            var r = 100;
+            var g = 50;
             var b = 40;
             ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
 
+            //artisan.drawRectangle('canvas', px, h-py, particles[i].d, particles[i].d, ctx.fillStyle);
             artisan.drawCircle('canvas', px, h-py, particles[i].d, ctx.fillStyle);
         }
 
@@ -243,7 +240,7 @@
         return d;
     }
 
-    function genParticles() {
+    /*function genParticles() {
         var particles = [];
 
         var maxim = 0;
@@ -252,7 +249,7 @@
             var p = new particle(Math.random(),Math.random(),1);
             for(var j = 0; j < i; j++) {
                 if(dist(particles[j],p) < 1) {
-                    particles[j].d = particles[j].d+1;
+                    particles[j].d = particles[j].d+2;
                     var maxim = Math.max(particles[j].d,max);
                 }
                 else{
@@ -261,10 +258,9 @@
                 }
             }
         }
-        alert(maxim);
 
         return particles;
-    }
+    }*/
 
 
 </script>
@@ -275,11 +271,9 @@
 
 <body onload="start()" style="background-color:rgb(150,150,150);">
 
-    <div style="text-align:center; font-size:30px">Conjunto de Juli&aacute;</div>
+    <div style="text-align:center; font-size:30px">Sistema de Part&iacute;culas</div>
 
     <input type="button" onclick="reset()" value="Reset" />
-    c:<input id="creal" type="text" value="0.4" />
-    <input id="cimag" type="text" value="0.0" /> i
     k:<input id="iterk" type="text" value="12" />
     
     <br />
