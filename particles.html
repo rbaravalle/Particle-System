@@ -182,6 +182,8 @@
         this.r = Math.ceil(Math.random()*255);
         this.g = this.r;
         this.b = this.r;
+        this.maxX = this.minX = x;
+        this.maxY = this.minY = y;
     }
 
     function s(p1,p2) {
@@ -196,12 +198,19 @@
     // agregar un punto a una particula
     particle.prototype.add = function(x,y) { 
         this.a[this.a.length] = new point(x,y); 
+        if(x < this.minX) this.minX = x;
+        if(x > this.maxX) this.maxY = x;
+        if(y < this.minY) this.minY = y;
+        if(y > this.maxY) this.maxY = y;
         //this.a = this.a.sort(s);
     };
 
     // funcion que determina si dos particulas se intersectan
     particle.prototype.intersecta = function(p) {
         if(!this || !p) return false;
+
+        if(this.maxX < p.minX || this.minX > p.maxX
+            || this.maxY < p.minY || this.minY > p.maxY) return false;
 
         for(var i = 0; i < this.a.length; i++)
             for(var j = 0; j < p.a.length; j++) {
@@ -219,11 +228,15 @@
 
         this.vx = (this.vx+p.vx)/2
         this.vy = (this.vy+p.vy)/2
+        this.minX = Math.min(this.minX, p.minX);
+        this.minY = Math.min(this.minY, p.minY);
+        this.maxX = Math.max(this.maxX, p.maxX);
+        this.maxY = Math.max(this.maxY, p.maxY);
     };
 
     particle.prototype.grow = function() {
         var fin = false;
-        var l = this.a.length;        
+        var l = this.a.length;
 
         for(var g = 0; g < l/this.rgrowth; g++) {
             var c = Math.ceil(Math.random()*(l-1));
