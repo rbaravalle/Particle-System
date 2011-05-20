@@ -22,7 +22,7 @@
     var escala = 2;
     var x, y;         // coords actuales al hacer click con el mouse onButtonDown()
 
-    var CANT_PARTICLES = 90;
+    var CANT_PARTICLES = 100;
     var TIEMPO = 100;
 
     function reset() {
@@ -179,6 +179,9 @@
         this.vy = Math.random()*2-1;
         this.a = [p];
         this.rgrowth = Math.ceil(Math.random()*4);
+        this.r = Math.ceil(Math.random()*255);
+        this.g = this.r;
+        this.b = this.r;
     }
 
     function s(p1,p2) {
@@ -222,9 +225,9 @@
         var fin = false;
         var l = this.a.length;        
 
-        for(var g = 0; g < this.rgrowth*l/8; g++) {
+        for(var g = 0; g < l/this.rgrowth; g++) {
             var c = Math.ceil(Math.random()*(l-1));
-            for(var h = 0; h < l; h++)
+            for(var h = 0; h < l/2; h++)
             {
                 var px = this.a[c].x;
                 var py = this.a[c].y;
@@ -232,7 +235,7 @@
                 var r = Math.ceil(Math.random()*3);
 
                 var nx, ny;
-                for(it = 0; it < 4; it++)
+                for(it = 0; it < 3; it++)
                 {
                     if(r == 0) {
                         nx = px + 1;
@@ -300,7 +303,6 @@
 
         for(var i = 0; i < CANT_PARTICLES; i++) {
 
-
             var x = Math.random()*2-1;
             var y = Math.random()*2-1;
 
@@ -310,6 +312,19 @@
         }
 
         for(var t = 0; t < TIEMPO; t++) {
+            // nuevas particulas
+            var lactual = particles.length;
+            for(var i = 0; i < 5; i++) {
+
+                var x = Math.random()*2-1;
+                var y = Math.random()*2-1;
+
+                var px = Math.ceil((x-x0)*w/diffX);
+                var py = Math.ceil((y-y0)*h/diffY);
+                particles[lactual+i] = new particle(px,py);
+            }
+
+
             for(var i = 0; i < particles.length; i++) {
                 particles[i].grow(); // simulacion de crecimiento de la burbuja
             }
@@ -337,9 +352,9 @@
                     var px = x;
                     var py = y;
 
-                    var r = 0;
-                    var g = 0;
-                    var b = 0;
+                    var r = particles[i].r;
+                    var g = particles[i].g;
+                    var b = particles[i].b;
                     ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
 
                     ctx.fillRect(px,h-py,1,1); 
