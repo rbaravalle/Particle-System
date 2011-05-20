@@ -5,6 +5,7 @@
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <script type="text/javascript" src="artisan-min.js"></script>
+<script type="text/javascript" src="prototype.js"></script>
 
 <script type="text/javascript">
 
@@ -181,13 +182,25 @@
 
     // funcion que determina si dos particulas se tocan
     particle.prototype.intersecta = function(p) {
+        if(!this || !p) return false;
+
         for(var i = 0; i < this.a.length; i++)
             for(var j = 0; j < p.a.length; j++) {
                 if(this.a[i].x == p.a[j].x && this.a[i].y == p.a[j].y)
                     return true;
             }
+
         return false;
-    }
+    };
+
+    // fusiona dos particulas en una sola
+    particle.prototype.fusion = function(p) {
+        var aCopy = p.a.clone();
+        this.a.concat(aCopy);
+
+        this.vx = (this.vx+p.vx)/2
+        this.vy = (this.vy+p.vy)/2
+    };
 
     function dist(p1,p2) {
         var d1 = Math.abs(p1.x - p2.x);
@@ -195,6 +208,15 @@
         var d = Math.sqrt( d1*d1 + d2*d2 );
         return d;
     }
+
+    function clone(obj) { 
+        if (null == obj || "object" != typeof obj) return obj; 
+        var copy = obj.constructor(); 
+        for (var attr in obj) { 
+            if (obj.hasOwnProperty(attr)) copy[attr] = obj[attr]; 
+        } 
+        return copy; 
+    } 
 
     // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
     function dibujar(ctx,x0,x1,y0,y1) {
@@ -210,7 +232,7 @@
 
         var particles = [];
 
-        for(var i = 0; i < 200; i++) {
+        for(var i = 0; i < 1000; i++) {
             var x = Math.random()*2-1;
             var y = Math.random()*2-1;
 
@@ -228,16 +250,21 @@
                 particles[i].add(a.x+t*Math.round(particles[i].vx),a.y+t*Math.round(particles[i].vy));
             }
 
-            /*for(var i = 0; i < particles.length; i++) {
-                for(var j = 0; j < particles.length; j++) {
-                    if(particles[i].intersecta(particles[j]);
-                        particles[i].fusion(particles[j]);
-                }
-            }*/
 
-            //alert(t);
 
             for(var i = 0; i < particles.length; i++) {
+                for(var j = 0; j < particles.length; j++) {
+                    if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) {
+                        particles[i].fusion(particles[j]);
+                        particles[j] = undefined;
+                    }
+                }
+            }
+
+            particles = particles.compact();
+
+            for(var i = 0; i < particles.length; i++) {
+                if(particles[i])
                 for(var j = 0; j < particles[i].a.length; j++) {
                     var x = particles[i].a[j].x;
                     var y = particles[i].a[j].y;
