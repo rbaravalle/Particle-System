@@ -21,7 +21,9 @@
     var ctx;
     var escala = 2;
     var x, y;         // coords actuales al hacer click con el mouse onButtonDown()
-    //var particles;
+
+    var CANT_PARTICLES = 90;
+    var TIEMPO = 100;
 
     function reset() {
         MIN = -1;
@@ -170,11 +172,13 @@
     }
 
     // cada particula cuenta con multiples puntos
-    function particle(x,y,vx,vy) {
+    function particle(x,y) {
         var p = new point(x,y);
-        this.vx = vx;
-        this.vy = vy;
+
+        this.vx = Math.random()*2-1;
+        this.vy = Math.random()*2-1;
         this.a = [p];
+        this.rgrowth = Math.ceil(Math.random()*4);
     }
 
     function s(p1,p2) {
@@ -189,10 +193,10 @@
     // agregar un punto a una particula
     particle.prototype.add = function(x,y) { 
         this.a[this.a.length] = new point(x,y); 
-        this.a = this.a.sort(s);
+        //this.a = this.a.sort(s);
     };
 
-    // funcion que determina si dos particulas se tocan
+    // funcion que determina si dos particulas se intersectan
     particle.prototype.intersecta = function(p) {
         if(!this || !p) return false;
 
@@ -216,48 +220,53 @@
 
     particle.prototype.grow = function() {
         var fin = false;
-        for(var i = 0; i < this.a.length; i++)
-        {
-            var px = this.a[i].x;
-            var py = this.a[i].y;
+        var l = this.a.length;        
 
-            var r = Math.ceil(Math.random()*4);
-
-            var nx, ny;
-            var it = 0; // cantidad de iteraciones en busqueda de un pixel libre
-            while(it <= 4)
+        for(var g = 0; g < this.rgrowth*l/8; g++) {
+            var c = Math.ceil(Math.random()*(l-1));
+            for(var h = 0; h < l; h++)
             {
-                if(r == 0) {
-                    nx = px + 1;
-                    ny = py;
-                }
+                var px = this.a[c].x;
+                var py = this.a[c].y;
 
-                if(r == 1) {
-                    nx = px - 1;
-                    ny = py;
-                }
+                var r = Math.ceil(Math.random()*3);
 
-                if(r == 2) {
-                    nx = px;
-                    ny = py + 1;
-                }
+                var nx, ny;
+                for(it = 0; it < 4; it++)
+                {
+                    if(r == 0) {
+                        nx = px + 1;
+                        ny = py;
+                    }
 
-                if(r == 3) {
-                    nx = px;
-                    ny = py - 1;
-                }
+                    if(r == 1) {
+                        nx = px - 1;
+                        ny = py;
+                    }
 
-                if(esta(this.a,nx,ny)) {
-                    r = (r+1)%4;
-                    it++;
+                    if(r == 2) {
+                        nx = px;
+                        ny = py + 1;
+                    }
+
+                    if(r == 3) {
+                        nx = px;
+                        ny = py - 1;
+                    }
+
+                    if(esta(this.a,nx,ny)) {
+                        r = (r+1)%4;
+                        it++;
+                    }
+                    else {
+                        this.add(nx,ny);
+                        fin = true;
+                        break;
+                    }
                 }
-                else {
-                    this.add(nx,ny);
-                    fin = true;
-                    break;
-                }
+                if(fin) break;
+                c = (c+1)%l;
             }
-            if(fin) break;
         }
     };
 
@@ -287,23 +296,21 @@
         var stepX = diffX/w;
         var stepY = diffY/h;
 
-        var particles = []; var maxim = 0;
+        var particles = [];
 
-        for(var i = 0; i < 50; i++) {
+        for(var i = 0; i < CANT_PARTICLES; i++) {
+
+
             var x = Math.random()*2-1;
             var y = Math.random()*2-1;
 
-            var vx = Math.random()*2-1;
-            var vy = Math.random()*2-1;
-
             var px = Math.ceil((x-x0)*w/diffX);
             var py = Math.ceil((y-y0)*h/diffY);
-            particles[i] = new particle(px,py,vx,vy);
+            particles[i] = new particle(px,py);
         }
 
-        for(var t = 0; t < 100; t++) {
+        for(var t = 0; t < TIEMPO; t++) {
             for(var i = 0; i < particles.length; i++) {
-                //var a = particles[i].a[0];
                 particles[i].grow(); // simulacion de crecimiento de la burbuja
             }
 
@@ -320,6 +327,8 @@
 
             particles = particles.compact();
 
+
+
             for(var i = 0; i < particles.length; i++) {
                 if(particles[i]) {
                 for(var j = 0; j < particles[i].a.length; j++) {
@@ -328,20 +337,17 @@
                     var px = x;
                     var py = y;
 
-                    var r = 150;
-                    var g = 100;
-                    var b = 50;
+                    var r = 0;
+                    var g = 0;
+                    var b = 0;
                     ctx.fillStyle = "rgba("+r+","+g+","+b+", 1.0)";
 
-                    ctx.fillRect(px,h-py,1,1);  
-                    
+                    ctx.fillRect(px,h-py,1,1); 
+                 }   
                 } 
-                maxim = Math.max(maxim,particles[i].a.length); }
             }
+            alert(t);
         }
-
-        alert(maxim);
-
         document.getElementById('minX').innerHTML = MIN;
         document.getElementById('maxX').innerHTML = MAX;
         document.getElementById('maxY').innerHTML = MAXY;
@@ -401,7 +407,7 @@
     <br />
 
     <div id="canvas-container" style="float:left;">
-        <canvas id="canvas" style="background-color:black;" width="800" height="800"></canvas>
+        <canvas id="canvas" style="background-color:white;" width="800" height="800"></canvas>
     </div>
 
     <div id="maxY" style="font-size:30px;"></div>
