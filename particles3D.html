@@ -32,7 +32,7 @@
 <script type="text/javascript">
 
     var CANT_PARTICLES = 1;
-    var TIEMPO = 30;
+    var TIEMPO = 25;
     var t = 0;
     var particles = [];
 
@@ -122,219 +122,196 @@
 
 
     var triangleVertexPositionBuffer;
-    var squareVertexPositionBuffer;
 
 
      function point(x,y) {
-            this.x = x
-            this.y = y
+        this.x = x
+        this.y = y
+    }
+
+    // cada particula cuenta con multiples puntos
+    function particle(x,y) {
+        var p = new point(x,y);
+
+        this.vx = Math.random()*2-1;
+        this.vy = Math.random()*2-1;
+        this.a = [p];
+        this.rgrowth = Math.ceil(Math.random()*10);
+        var c = Math.random();
+        this.r = 199+c;
+        this.g = 168+c;
+        this.b = 104+c;
+        this.maxX = this.minX = x;
+        this.maxY = this.minY = y;
+    }
+
+    function s(p1,p2) {
+        if(p1.x == p2.x) {
+            if(p1.y < p2.y) return 1; else return -1;
         }
-
-        // cada particula cuenta con multiples puntos
-        function particle(x,y) {
-            var p = new point(x,y);
-
-            this.vx = Math.random()*2-1;
-            this.vy = Math.random()*2-1;
-            this.a = [p];
-            this.rgrowth = Math.ceil(Math.random()*10);
-            var c = Math.ceil(Math.random()*30);
-            this.r = 199+c;
-            this.g = 168+c;
-            this.b = 104+c;
-            this.maxX = this.minX = x;
-            this.maxY = this.minY = y;
+        else {
+            if(p1.x < p2.x) return 1; else return -1; 
         }
+    }
 
-        function s(p1,p2) {
-            if(p1.x == p2.x) {
-                if(p1.y < p2.y) return 1; else return -1;
+    // agregar un punto a una particula
+    particle.prototype.add = function(x,y) { 
+        this.a[this.a.length] = new point(x,y); 
+        if(x < this.minX) this.minX = x;
+        if(x > this.maxX) this.maxY = x;
+        if(y < this.minY) this.minY = y;
+        if(y > this.maxY) this.maxY = y;
+        //this.a = this.a.sort(s);
+    };
+
+    // funcion que determina si dos particulas se intersectan
+    particle.prototype.intersecta = function(p) {
+        if(!this || !p) return false;
+
+        if(this.maxX < p.minX || this.minX > p.maxX
+            || this.maxY < p.minY || this.minY > p.maxY) return false;
+
+        for(var i = 0; i < this.a.length; i++)
+            for(var j = 0; j < p.a.length; j++) {
+                if(this.a[i].x == p.a[j].x && this.a[i].y == p.a[j].y)
+                    return true;
             }
-            else {
-                if(p1.x < p2.x) return 1; else return -1; 
-            }
-        }
 
-        // agregar un punto a una particula
-        particle.prototype.add = function(x,y) { 
-            this.a[this.a.length] = new point(x,y); 
-            if(x < this.minX) this.minX = x;
-            if(x > this.maxX) this.maxY = x;
-            if(y < this.minY) this.minY = y;
-            if(y > this.maxY) this.maxY = y;
-            //this.a = this.a.sort(s);
-        };
+        return false;
+    };
 
-        // funcion que determina si dos particulas se intersectan
-        particle.prototype.intersecta = function(p) {
-            if(!this || !p) return false;
+    // fusiona dos particulas en una sola
+    particle.prototype.fusion = function(p) {
+        var aCopy = p.a.clone();
+        this.a = this.a.concat(aCopy);
 
-            if(this.maxX < p.minX || this.minX > p.maxX
-                || this.maxY < p.minY || this.minY > p.maxY) return false;
+        this.vx = (this.vx+p.vx)/2
+        this.vy = (this.vy+p.vy)/2
+        this.minX = Math.min(this.minX, p.minX);
+        this.minY = Math.min(this.minY, p.minY);
+        this.maxX = Math.max(this.maxX, p.maxX);
+        this.maxY = Math.max(this.maxY, p.maxY);
+    };
 
-            for(var i = 0; i < this.a.length; i++)
-                for(var j = 0; j < p.a.length; j++) {
-                    if(this.a[i].x == p.a[j].x && this.a[i].y == p.a[j].y)
-                        return true;
-                }
+    particle.prototype.grow = function() {
+        var fin = false;
+        var l = this.a.length;
+        var maxim = l/this.rgrowth;
 
-            return false;
-        };
+        for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
+            var c = Math.ceil(Math.random()*(l-1));
+            for(var h = 0; h < l; h++)
+            {
+                var px = this.a[c].x;
+                var py = this.a[c].y;
 
-        // fusiona dos particulas en una sola
-        particle.prototype.fusion = function(p) {
-            var aCopy = p.a.clone();
-            this.a = this.a.concat(aCopy);
+                var r = Math.ceil(Math.random()*3);
 
-            this.vx = (this.vx+p.vx)/2
-            this.vy = (this.vy+p.vy)/2
-            this.minX = Math.min(this.minX, p.minX);
-            this.minY = Math.min(this.minY, p.minY);
-            this.maxX = Math.max(this.maxX, p.maxX);
-            this.maxY = Math.max(this.maxY, p.maxY);
-        };
-
-        particle.prototype.grow = function() {
-            var fin = false;
-            var l = this.a.length;
-            var maxim = l/this.rgrowth;
-
-            for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
-                var c = Math.ceil(Math.random()*(l-1));
-                for(var h = 0; h < l; h++)
+                var nx, ny;
+                for(it = 0; it < 4; it++)
                 {
-                    var px = this.a[c].x;
-                    var py = this.a[c].y;
-
-                    var r = Math.ceil(Math.random()*3);
-
-                    var nx, ny;
-                    for(it = 0; it < 4; it++)
-                    {
-                        if(r == 0) {
-                            nx = px + 1;
-                            ny = py;
-                        }
-
-                        if(r == 1) {
-                            nx = px - 1;
-                            ny = py;
-                        }
-
-                        if(r == 2) {
-                            nx = px;
-                            ny = py + 1;
-                        }
-
-                        if(r == 3) {
-                            nx = px;
-                            ny = py - 1;
-                        }
-
-                        if(esta(this.a,nx,ny)) {
-                            r = (r+1)%4;
-                            it++;
-                        }
-                        else {
-                            this.add(nx,ny);
-                            fin = true;
-                            break;
-                        }
+                    if(r == 0) {
+                        nx = px + 1;
+                        ny = py;
                     }
-                    if(fin) break;
-                    c = (c+1)%l;
+
+                    if(r == 1) {
+                        nx = px - 1;
+                        ny = py;
+                    }
+
+                    if(r == 2) {
+                        nx = px;
+                        ny = py + 1;
+                    }
+
+                    if(r == 3) {
+                        nx = px;
+                        ny = py - 1;
+                    }
+
+                    if(esta(this.a,nx,ny)) {
+                        r = (r+1)%4;
+                        it++;
+                    }
+                    else {
+                        this.add(nx,ny);
+                        fin = true;
+                        break;
+                    }
+                }
+                if(fin) break;
+                c = (c+1)%l;
+            }
+        }
+    };
+
+    function esta (a,x,y) {
+        for(var i = 0; i < a.length; i++)
+            if(a[i].x == x && a[i].y == y) return true;
+
+        return false;
+    }
+
+    function dist(p1,p2) {
+        var d1 = Math.abs(p1.x - p2.x);
+        var d2 = Math.abs(p1.y - p2.y);
+        var d = Math.sqrt( d1*d1 + d2*d2 );
+        return d;
+    }
+
+    function init_particles() {
+        for(var i = 0; i < CANT_PARTICLES; i++) {
+
+            var x = Math.random();
+            var y = Math.random();
+
+            var px = Math.ceil(x*800);
+            var py = Math.ceil(y*800);
+            particles[i] = new particle(px,py);
+        }
+
+    }
+
+    // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
+    function generar() {
+
+        // nuevas particulas
+        var lactual = particles.length;
+        for(var i = 0; i < 5; i++) {
+
+            var x = Math.random();
+            var y = Math.random();
+
+            var px = Math.ceil(x*800);
+            var py = Math.ceil(y*800);
+            particles[lactual+i] = new particle(px,py);
+        }
+
+
+        for(var i = 0; i < particles.length; i++) {
+            particles[i].grow(); // simulacion de crecimiento de la burbuja
+        }
+
+        for(var i = 0; i < particles.length; i++) {
+            for(var j = 0; j < particles.length; j++) {
+                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) {
+                    if(particles[i].a.length > particles[j].a.length) {
+                        particles[i].fusion(particles[j]);
+                        particles[j] = undefined;
+                    }
+                    else  {
+                        particles[j].fusion(particles[i]);
+                        particles[i] = undefined;
+                    }
                 }
             }
-        };
-
-        function esta (a,x,y) {
-            for(var i = 0; i < a.length; i++)
-                if(a[i].x == x && a[i].y == y) return true;
-
-            return false;
         }
 
-        function dist(p1,p2) {
-            var d1 = Math.abs(p1.x - p2.x);
-            var d2 = Math.abs(p1.y - p2.y);
-            var d = Math.sqrt( d1*d1 + d2*d2 );
-            return d;
-        }
+        // eliminamos las undefined
+        particles = particles.compact();
 
-        function init_particles() {
-            for(var i = 0; i < CANT_PARTICLES; i++) {
-
-                var x = Math.random()*2-1;
-                var y = Math.random()*2-1;
-
-                var px = Math.ceil((x+1)*800/2);
-                var py = Math.ceil((y+1)*800/2);
-                particles[i] = new particle(px,py);
-            }
-
-                for(var i = 0; i < particles.length; i++) {
-                    particles[i].grow(); // simulacion de crecimiento de la burbuja
-                }
-
-                for(var i = 0; i < particles.length; i++) {
-                    for(var j = 0; j < particles.length; j++) {
-                        if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) {
-                            if(particles[i].a.length > particles[j].a.length) {
-                                particles[i].fusion(particles[j]);
-                                particles[j] = undefined;
-                            }
-                            else  {
-                                particles[j].fusion(particles[i]);
-                                particles[i] = undefined;
-                            }
-                        }
-                    }
-                }
-
-                // eliminamos las undefined
-                particles = particles.compact();
-
-        }
-
-        // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
-        function generar() {
-
-                // nuevas particulas
-                var lactual = particles.length;
-                for(var i = 0; i < 35; i++) {
-
-                    var x = Math.random()*2-1;
-                    var y = Math.random()*2-1;
-
-                    var px = Math.ceil((x+1)*800/2);
-                    var py = Math.ceil((y+1)*800/2);
-                    particles[lactual+i] = new particle(px,py);
-                }
-
-
-                for(var i = 0; i < particles.length; i++) {
-                    particles[i].grow(); // simulacion de crecimiento de la burbuja
-                }
-
-                for(var i = 0; i < particles.length; i++) {
-                    for(var j = 0; j < particles.length; j++) {
-                        if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) {
-                            if(particles[i].a.length > particles[j].a.length) {
-                                particles[i].fusion(particles[j]);
-                                particles[j] = undefined;
-                            }
-                            else  {
-                                particles[j].fusion(particles[i]);
-                                particles[i] = undefined;
-                            }
-                        }
-                    }
-                }
-
-                // eliminamos las undefined
-                particles = particles.compact();
-
-        }
+    }
 
 
 
@@ -348,7 +325,7 @@
 
         for (var i = 0; i < particles.length ; i++)
             for (var j = 0; j < particles[i].a.length ; j++) {
-                 vertices = vertices.concat(particles[i].a[j].x/100,particles[i].a[j].y/100,0.0);
+                 vertices = vertices.concat(particles[i].a[j].x/100.0,particles[i].a[j].y/100.0,0.0);
                  cant ++;
             }
 
@@ -374,7 +351,7 @@
         gl.drawArrays(gl.POINTS, 0, triangleVertexPositionBuffer.numItems);
         generar();
         t++;
-        alert("una mas!");
+        alert(t);
         if(t<TIEMPO) {
             initBuffers();
             drawScene();
