@@ -12,27 +12,35 @@
     precision highp float;
     #endif
 
+    varying vec4 vColor;
+
     void main(void) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        gl_FragColor = vColor;
     }
 </script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
 
+    attribute vec4 aVertexColor;
+
+
+    varying vec4 vColor;
+
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
 
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+	vColor = aVertexColor;
     }
 </script>
 
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 1;
-    var TIEMPO = 25;
+    var CANT_PARTICLES = 500;
+    var TIEMPO = 550;
     var t = 0;
     var particles = [];
 
@@ -106,6 +114,10 @@
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
+  	shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+    	gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
     }
@@ -122,6 +134,7 @@
 
 
     var triangleVertexPositionBuffer;
+    var triangleVertexColorBuffer;
 
 
      function point(x,y) {
@@ -137,10 +150,10 @@
         this.vy = Math.random()*2-1;
         this.a = [p];
         this.rgrowth = Math.ceil(Math.random()*10);
-        var c = Math.random();
-        this.r = 199+c;
-        this.g = 168+c;
-        this.b = 104+c;
+        var c = Math.ceil(Math.random()*255);
+        this.r = c;
+        this.g = c;
+        this.b = c;
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
     }
@@ -193,7 +206,7 @@
         this.maxY = Math.max(this.maxY, p.maxY);
     };
 
-    particle.prototype.grow = function() {
+    particle.prototype.grow = function(este) {
         var fin = false;
         var l = this.a.length;
         var maxim = l/this.rgrowth;
@@ -230,14 +243,24 @@
                         ny = py - 1;
                     }
 
+
                     if(esta(this.a,nx,ny)) {
                         r = (r+1)%4;
                         it++;
                     }
                     else {
-                        this.add(nx,ny);
-                        fin = true;
-                        break;
+		        var np = new particle(nx,ny);
+		        np.a = np.a.concat(this.a);
+			var agregar = true;
+		        for(var it = 0; it < particles.length; it++) {
+			    if(it!= este && np.intersecta(particles[it])) { agregar = false; break; }
+		        }
+
+			if(agregar) {
+                            this.add(nx,ny);
+                            fin = true;
+                            break;
+			}
                     }
                 }
                 if(fin) break;
@@ -278,7 +301,7 @@
 
         // nuevas particulas
         var lactual = particles.length;
-        for(var i = 0; i < 5; i++) {
+        for(var i = 0; i < 0; i++) {
 
             var x = Math.random();
             var y = Math.random();
@@ -288,9 +311,9 @@
             particles[lactual+i] = new particle(px,py);
         }
 
-
+	//particles[0].grow(0);
         for(var i = 0; i < particles.length; i++) {
-            particles[i].grow(); // simulacion de crecimiento de la burbuja
+            particles[i].grow(i); // simulacion de crecimiento de la burbuja
         }
 
         for(var i = 0; i < particles.length; i++) {
@@ -317,21 +340,29 @@
 
     function initBuffers() {
         
-        triangleVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-
         var vertices = [];
+	var colors = [];
         var cant = 0;
 
         for (var i = 0; i < particles.length ; i++)
             for (var j = 0; j < particles[i].a.length ; j++) {
                  vertices = vertices.concat(particles[i].a[j].x/100.0,particles[i].a[j].y/100.0,0.0);
+		 colors = colors.concat((i%2)*255,(1-i%2)*255,0.0,1.0);
                  cant ++;
             }
+
+        triangleVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         triangleVertexPositionBuffer.itemSize = 3;
         triangleVertexPositionBuffer.numItems = cant;
+
+ 	triangleVertexColorBuffer = gl.createBuffer();
+    	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    	triangleVertexColorBuffer.itemSize = 4;
+   	triangleVertexColorBuffer.numItems = cant;
 
     }
 
@@ -347,6 +378,11 @@
         mat4.translate(mvMatrix, [-4.0, -4.0, -10.0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+	gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
         setMatrixUniforms();
         gl.drawArrays(gl.POINTS, 0, triangleVertexPositionBuffer.numItems);
         generar();
