@@ -7,40 +7,45 @@
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="prototype.js"></script>
 
-<script id="shader-fs" type="x-shader/x-fragment">
+<script id="shader-fs" type="x-shader/x-fragment"> 
     #ifdef GL_ES
     precision highp float;
     #endif
-
+ 
     varying vec4 vColor;
-
+ 
     void main(void) {
         gl_FragColor = vColor;
     }
-</script>
-
-<script id="shader-vs" type="x-shader/x-vertex">
+</script> 
+ 
+<script id="shader-vs" type="x-shader/x-vertex"> 
     attribute vec3 aVertexPosition;
-
     attribute vec4 aVertexColor;
-
-
-    varying vec4 vColor;
-
+ 
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
-
+ 
+    varying vec4 vColor;
+ 
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-	vColor = aVertexColor;
+        vColor = aVertexColor;
     }
-</script>
+</script> 
 
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 500;
-    var TIEMPO = 550;
+    var CANT_PARTICLES = 2;
+    var TIEMPO = 750;
+
+    var maxcoord = 100;
+    var occupied = [];
+    for(var i = 0; i < maxcoord; i++)
+	for(var j = 0; j < maxcoord; j++)
+	    occupied[i+j*maxcoord] = new point(i,j,-1);
+
     var t = 0;
     var particles = [];
 
@@ -137,23 +142,26 @@
     var triangleVertexColorBuffer;
 
 
-     function point(x,y) {
+     function point(x,y,i) {
         this.x = x
         this.y = y
+	this.particle = i
+        if(i >= 0) this.o = true; else this.o = false;
     }
 
     // cada particula cuenta con multiples puntos
-    function particle(x,y) {
-        var p = new point(x,y);
+    function particle(x,y,i) {
+        var p = new point(x,y,i);
 
+	this.i = i;
         this.vx = Math.random()*2-1;
         this.vy = Math.random()*2-1;
         this.a = [p];
         this.rgrowth = Math.ceil(Math.random()*10);
-        var c = Math.ceil(Math.random()*255);
-        this.r = c;
-        this.g = c;
-        this.b = c;
+        var c = Math.random();
+        this.r = Math.random();
+        this.g = Math.random();
+        this.b = Math.random();
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
     }
@@ -169,7 +177,7 @@
 
     // agregar un punto a una particula
     particle.prototype.add = function(x,y) { 
-        this.a[this.a.length] = new point(x,y); 
+        this.a[this.a.length] = new point(x,y,this.i); 
         if(x < this.minX) this.minX = x;
         if(x > this.maxX) this.maxY = x;
         if(y < this.minY) this.minY = y;
@@ -183,6 +191,7 @@
 
         if(this.maxX < p.minX || this.minX > p.maxX
             || this.maxY < p.minY || this.minY > p.maxY) return false;
+
 
         for(var i = 0; i < this.a.length; i++)
             for(var j = 0; j < p.a.length; j++) {
@@ -206,12 +215,12 @@
         this.maxY = Math.max(this.maxY, p.maxY);
     };
 
-    particle.prototype.grow = function(este) {
+    particle.prototype.grow = function() {
         var fin = false;
         var l = this.a.length;
         var maxim = l/this.rgrowth;
 
-        for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
+        for(var g = 0; g < 1 ; g++) { // cantidad de puntos que se le agrega a la particula
             var c = Math.ceil(Math.random()*(l-1));
             for(var h = 0; h < l; h++)
             {
@@ -249,14 +258,8 @@
                         it++;
                     }
                     else {
-		        var np = new particle(nx,ny);
-		        np.a = np.a.concat(this.a);
-			var agregar = true;
-		        for(var it = 0; it < particles.length; it++) {
-			    if(it!= este && np.intersecta(particles[it])) { agregar = false; break; }
-		        }
-
-			if(agregar) {
+			if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
+				&& !occupied[nx+maxcoord*ny].o) {
                             this.add(nx,ny);
                             fin = true;
                             break;
@@ -266,6 +269,7 @@
                 if(fin) break;
                 c = (c+1)%l;
             }
+
         }
     };
 
@@ -289,9 +293,9 @@
             var x = Math.random();
             var y = Math.random();
 
-            var px = Math.ceil(x*800);
-            var py = Math.ceil(y*800);
-            particles[i] = new particle(px,py);
+            var px = Math.ceil(x*50);
+            var py = Math.ceil(y*50);
+            particles[i] = new particle(px,py,i);
         }
 
     }
@@ -306,19 +310,18 @@
             var x = Math.random();
             var y = Math.random();
 
-            var px = Math.ceil(x*800);
-            var py = Math.ceil(y*800);
-            particles[lactual+i] = new particle(px,py);
+            var px = Math.ceil(x*maxcoord);
+            var py = Math.ceil(y*maxcoord);
+            particles[lactual+i] = new particle(px,py,i);
         }
 
-	//particles[0].grow(0);
         for(var i = 0; i < particles.length; i++) {
-            particles[i].grow(i); // simulacion de crecimiento de la burbuja
-        }
+            particles[i].grow(); // simulacion de crecimiento de la burbuja
+        };
 
         for(var i = 0; i < particles.length; i++) {
             for(var j = 0; j < particles.length; j++) {
-                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) {
+                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) { alert("wtf");
                     if(particles[i].a.length > particles[j].a.length) {
                         particles[i].fusion(particles[j]);
                         particles[j] = undefined;
@@ -339,30 +342,7 @@
 
 
     function initBuffers() {
-        
-        var vertices = [];
-	var colors = [];
-        var cant = 0;
-
-        for (var i = 0; i < particles.length ; i++)
-            for (var j = 0; j < particles[i].a.length ; j++) {
-                 vertices = vertices.concat(particles[i].a[j].x/100.0,particles[i].a[j].y/100.0,0.0);
-		 colors = colors.concat((i%2)*255,(1-i%2)*255,0.0,1.0);
-                 cant ++;
-            }
-
-        triangleVertexPositionBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-        triangleVertexPositionBuffer.itemSize = 3;
-        triangleVertexPositionBuffer.numItems = cant;
-
- 	triangleVertexColorBuffer = gl.createBuffer();
-    	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-    	triangleVertexColorBuffer.itemSize = 4;
-   	triangleVertexColorBuffer.numItems = cant;
+        ;
 
     }
 
@@ -376,18 +356,46 @@
         mat4.identity(mvMatrix);
 
         mat4.translate(mvMatrix, [-4.0, -4.0, -10.0]);
-        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-	gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 
-        setMatrixUniforms();
-        gl.drawArrays(gl.POINTS, 0, triangleVertexPositionBuffer.numItems);
+        for (var i = 0; i < particles.length ; i++) {
+
+		var vertices = [];
+		var colors = [];
+		var cant = 0;
+
+            for (var j = 0; j < particles[i].a.length ; j++) {
+                 vertices = vertices.concat(particles[i].a[j].x/10.0,particles[i].a[j].y/10.0,0.0);
+		 colors = colors.concat(particles[i].r,particles[i].g,particles[i].b,1.0);
+                 cant ++;
+		}
+
+		triangleVertexPositionBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+		triangleVertexPositionBuffer.itemSize = 3;
+		triangleVertexPositionBuffer.numItems = cant;
+
+	 	triangleVertexColorBuffer = gl.createBuffer();
+	    	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+	   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+	    	triangleVertexColorBuffer.itemSize = 4;
+	   	triangleVertexColorBuffer.numItems = cant;
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+		gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+		setMatrixUniforms();
+		gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+	}
+
         generar();
         t++;
-        alert(t);
+        //alert(t);
         if(t<TIEMPO) {
             initBuffers();
             drawScene();
@@ -405,7 +413,7 @@
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
-
+alert("init");
         init_particles();
 
         drawScene();
