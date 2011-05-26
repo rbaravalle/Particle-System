@@ -37,13 +37,15 @@
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 2;
-    var TIEMPO = 750;
+    var CANT_PARTICLES = 300;
+    var TIEMPO = 250;
 
-    var maxcoord = 100;
+    var maxcoord = 200;
+    var maxcoord2 = maxcoord*maxcoord;
+
     var occupied = [];
     for(var i = 0; i < maxcoord; i++)
-	for(var j = 0; j < maxcoord; j++)
+	   for(var j = 0; j < maxcoord; j++)
 	    occupied[i+j*maxcoord] = new point(i,j,-1);
 
     var t = 0;
@@ -145,19 +147,40 @@
      function point(x,y,i) {
         this.x = x
         this.y = y
-	this.particle = i
-        if(i >= 0) this.o = true; else this.o = false;
+        this.particle = i
+        if(i >= 0) this.o = 1; else this.o = 0;
     }
 
     // cada particula cuenta con multiples puntos
     function particle(x,y,i) {
         var p = new point(x,y,i);
 
-	this.i = i;
+        this.i = i;
         this.vx = Math.random()*2-1;
         this.vy = Math.random()*2-1;
         this.a = [p];
+       
+        var p1 = new point(x+1,y,-1);
+        var p2 = new point(x,y+1,-1);
+        var p3 = new point(x-1,y,-1);
+        var p4 = new point(x,y-1,-1);
+
+        var p1c = p1.x+p1.y*maxcoord;
+        var p2c = p2.x+p2.y*maxcoord;
+        var p3c = p3.x+p3.y*maxcoord;
+        var p4c = p4.x+p4.y*maxcoord;
+
+        this.contorno = [];
+
+        if(p1c > 0 && p1c < maxcoord2 && !occupied[p1.x+p1.y*maxcoord].o && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
+        if(p2c > 0 && p2c < maxcoord2 && !occupied[p2.x+p2.y*maxcoord].o && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
+        if(p3c > 0 && p3c < maxcoord2 && !occupied[p3.x+p3.y*maxcoord].o && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3);
+        if(p4c > 0 && p4c < maxcoord2 && !occupied[p4.x+p4.y*maxcoord].o && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
+        
+
         this.rgrowth = Math.ceil(Math.random()*10);
+        this.cangrow = 1; // crece?
+
         var c = Math.random();
         this.r = Math.random();
         this.g = Math.random();
@@ -182,6 +205,34 @@
         if(x > this.maxX) this.maxY = x;
         if(y < this.minY) this.minY = y;
         if(y > this.maxY) this.maxY = y;
+
+
+        for(var i = 0; i < this.contorno.length; i++) {
+          if(this.contorno[i].x == x &&
+             this.contorno[i].y == y ) { this.contorno[i] = undefined; break; }
+        }
+
+        this.contorno = this.contorno.compact();
+
+        var p1 = new point(x+1,y,-1);
+        var p2 = new point(x,y+1,-1);
+        var p3 = new point(x-1,y,-1);
+        var p4 = new point(x,y-1,-1);
+
+        var p1c = p1.x+p1.y*maxcoord;
+        var p2c = p2.x+p2.y*maxcoord;
+        var p3c = p3.x+p3.y*maxcoord;
+        var p4c = p4.x+p4.y*maxcoord;
+
+        if(p1c > 0 && p1c < maxcoord2 && !occupied[p1c].o && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
+        if(p2c > 0 && p2c < maxcoord2 && !occupied[p2c].o && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
+        if(p3c > 0 && p3c < maxcoord2 && !occupied[p3c].o && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3);
+        if(p4c > 0 && p4c < maxcoord2 && !occupied[p4c].o && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
+
+	     occupied[x+y*maxcoord].o++;
+
+        if(this.contorno.length == 0) this.cangrow = 0;
+
         //this.a = this.a.sort(s);
     };
 
@@ -205,10 +256,11 @@
     // fusiona dos particulas en una sola
     particle.prototype.fusion = function(p) {
         var aCopy = p.a.clone();
+        var contCopy = p.contorno.clone();
         this.a = this.a.concat(aCopy);
 
-        this.vx = (this.vx+p.vx)/2
-        this.vy = (this.vy+p.vy)/2
+        this.vx = (this.vx+p.vx)/2;
+        this.vy = (this.vy+p.vy)/2;
         this.minX = Math.min(this.minX, p.minX);
         this.minY = Math.min(this.minY, p.minY);
         this.maxX = Math.max(this.maxX, p.maxX);
@@ -216,61 +268,27 @@
     };
 
     particle.prototype.grow = function() {
-        var fin = false;
-        var l = this.a.length;
-        var maxim = l/this.rgrowth;
+      var fin = false;
+      var l = this.contorno.length;
+      var maxim = l/this.rgrowth;
 
-        for(var g = 0; g < 1 ; g++) { // cantidad de puntos que se le agrega a la particula
+      for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
             var c = Math.ceil(Math.random()*(l-1));
             for(var h = 0; h < l; h++)
             {
-                var px = this.a[c].x;
-                var py = this.a[c].y;
+               if(this.contorno[c]) {
+                var nx = this.contorno[c].x;
+                var ny = this.contorno[c].y;
 
-                var r = Math.ceil(Math.random()*3);
-
-                var nx, ny;
-                for(it = 0; it < 4; it++)
-                {
-                    if(r == 0) {
-                        nx = px + 1;
-                        ny = py;
-                    }
-
-                    if(r == 1) {
-                        nx = px - 1;
-                        ny = py;
-                    }
-
-                    if(r == 2) {
-                        nx = px;
-                        ny = py + 1;
-                    }
-
-                    if(r == 3) {
-                        nx = px;
-                        ny = py - 1;
-                    }
-
-
-                    if(esta(this.a,nx,ny)) {
-                        r = (r+1)%4;
-                        it++;
-                    }
-                    else {
-			if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
-				&& !occupied[nx+maxcoord*ny].o) {
-                            this.add(nx,ny);
-                            fin = true;
-                            break;
-			}
-                    }
-                }
-                if(fin) break;
+                if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
+         				&& !occupied[nx+maxcoord*ny].o) {
+                         this.add(nx,ny);
+                         break;
+		               }
+               }
                 c = (c+1)%l;
             }
-
-        }
+      }
     };
 
     function esta (a,x,y) {
@@ -293,8 +311,8 @@
             var x = Math.random();
             var y = Math.random();
 
-            var px = Math.ceil(x*50);
-            var py = Math.ceil(y*50);
+            var px = Math.ceil(x*maxcoord);
+            var py = Math.ceil(y*maxcoord);
             particles[i] = new particle(px,py,i);
         }
 
@@ -316,12 +334,15 @@
         }
 
         for(var i = 0; i < particles.length; i++) {
-            particles[i].grow(); // simulacion de crecimiento de la burbuja
+           if(particles[i].cangrow) particles[i].grow(); // simulacion de crecimiento de la burbuja
         };
 
-        for(var i = 0; i < particles.length; i++) {
+        /*for(var i = 0; i < particles.length; i++) {
+
+            
+
             for(var j = 0; j < particles.length; j++) {
-                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) { alert("wtf");
+                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) { 
                     if(particles[i].a.length > particles[j].a.length) {
                         particles[i].fusion(particles[j]);
                         particles[j] = undefined;
@@ -332,19 +353,13 @@
                     }
                 }
             }
-        }
+        }*/
 
         // eliminamos las undefined
         particles = particles.compact();
 
     }
 
-
-
-    function initBuffers() {
-        ;
-
-    }
 
 
     function drawScene() {
@@ -365,7 +380,7 @@
 		var cant = 0;
 
             for (var j = 0; j < particles[i].a.length ; j++) {
-                 vertices = vertices.concat(particles[i].a[j].x/10.0,particles[i].a[j].y/10.0,0.0);
+                 vertices = vertices.concat(particles[i].a[j].x*0.03,particles[i].a[j].y*0.03,0.0);
 		 colors = colors.concat(particles[i].r,particles[i].g,particles[i].b,1.0);
                  cant ++;
 		}
@@ -390,14 +405,14 @@
 
 
 		setMatrixUniforms();
-		gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+		gl.drawArrays(gl.POINTS, 0, triangleVertexPositionBuffer.numItems);
 	}
 
         generar();
         t++;
-        //alert(t);
+        alert(t);
+        $('iteracion').innerHTML = t;
         if(t<TIEMPO) {
-            initBuffers();
             drawScene();
         }
 
@@ -409,11 +424,10 @@
         var canvas = document.getElementById("lesson01-canvas");
         initGL(canvas);
         initShaders();
-        initBuffers();
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
-alert("init");
+
         init_particles();
 
         drawScene();
@@ -428,6 +442,7 @@ alert("init");
 
 <body onload="webGLStart();">
     <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas>
+   <span id="iteracion">0</span>
 </body>
 
 </html>
