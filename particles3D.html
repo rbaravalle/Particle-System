@@ -37,14 +37,15 @@
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 400;
-    var CANT_NEW_PARTICLES = 15;
+    var CANT_PARTICLES = 3000;
+    var CANT_NEW_PARTICLES = 100;
 
-    var TIEMPO = 40;
+    var TIEMPO = 20;
 
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont = 0;
+    var varcolor = 0.2;
 
     var occupied = [];
     for(var i = 0; i < maxcoord; i++)
@@ -176,20 +177,22 @@
         this.contorno = [];
 
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p1);
-        if(p2c > 0 && p2c < maxcoord2 && occupied[p2.x+p2.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p2);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3.x+p3.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p3);
-        if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p4);
-        
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3.x+p3.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p3); 
 
-        this.rgrowth = Math.ceil(Math.random()*2);
+        if(p2c > 0 && p2c < maxcoord2 && occupied[p2.x+p2.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p2);    
+        if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p4);
+
+
+        this.rgrowth = Math.ceil(Math.random()*40);
         this.cangrow = 1; // crece?
 
-        var c = Math.random();
-        this.r = 0.7 + c*0.2;
-        this.g = 0.55 + c*0.2;
-        this.b = 0.25 + c*0.2;
+        var c = Math.random()*2-1;
+        this.r = 0.8 + c*varcolor;
+        this.g = 0.7 + c*varcolor;
+        this.b = 0.6 + c*varcolor;
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
+        this.orient = Math.ceil(Math.random()*2)
     }
 
     function s(p1,p2) {
@@ -220,9 +223,11 @@
         var p4c = p4.x+p4.y*maxcoord;
 
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
         if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3);
+
         if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
+       
 
 	    occupied[x+y*maxcoord].o = 1;
 
@@ -331,7 +336,7 @@
 
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
-            if(occupied[px+maxcoord*py].o == 0) {
+            if(px > 0 && py > 0 && px < maxcoord && py < maxcoord && occupied[px+maxcoord*py].o == 0) {
                 particles[ult++] = new particle(px,py,i);
             }
         }
@@ -371,7 +376,7 @@
 
         mat4.identity(mvMatrix);
 
-        mat4.translate(mvMatrix, [-4.0, -4.0, -10.0]);
+        mat4.translate(mvMatrix, [-4.0, -2.0, -10.0]);
 
         largoCont = 0;        
 
@@ -394,8 +399,10 @@
             for (var j = 0; j < cant ; j++) {
                  var piaj = pi.a[j];
                  vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
-                 colors = colors.concat(pi.r,pi.g,pi.b,1.0);
-                 //cant++;
+                 //if(cant > 200) colors = colors.concat(0.1,0.1,0.1,1.0);
+//                 else
+                 var c = (Math.random()*2-1)*varcolor;
+                 colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
 		    }
 
 
@@ -422,7 +429,7 @@
         alert(t);
         $('iteracion').innerHTML = t;
         $('contorno').innerHTML = largoCont;
-        if(t<TIEMPO && largoCont > 0) {
+        if(t<TIEMPO /*&& ( t<=8 || largoCont > 100000 )*/ ) {
             drawScene();
         }
 
@@ -453,7 +460,7 @@
 <body onload="webGLStart();">
    <span id="iteracion">0</span>
    <span id="contorno">0</span>
-   <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas>
+   <canvas id="lesson01-canvas" style="border: none; background-color: white;" width="400" height="400"></canvas>
 </body>
 
 </html>
