@@ -37,11 +37,12 @@
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 300;
-    var TIEMPO = 250;
+    var CANT_PARTICLES = 400;
+    var TIEMPO = 40;
 
-    var maxcoord = 200;
+    var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
+    var largoCont = 0;
 
     var occupied = [];
     for(var i = 0; i < maxcoord; i++)
@@ -172,19 +173,19 @@
 
         this.contorno = [];
 
-        if(p1c > 0 && p1c < maxcoord2 && !occupied[p1.x+p1.y*maxcoord].o && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
-        if(p2c > 0 && p2c < maxcoord2 && !occupied[p2.x+p2.y*maxcoord].o && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
-        if(p3c > 0 && p3c < maxcoord2 && !occupied[p3.x+p3.y*maxcoord].o && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3);
-        if(p4c > 0 && p4c < maxcoord2 && !occupied[p4.x+p4.y*maxcoord].o && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
+        if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p1);
+        if(p2c > 0 && p2c < maxcoord2 && occupied[p2.x+p2.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p2);
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3.x+p3.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p3);
+        if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p4);
         
 
-        this.rgrowth = Math.ceil(Math.random()*10);
+        this.rgrowth = Math.ceil(Math.random()*5);
         this.cangrow = 1; // crece?
 
         var c = Math.random();
-        this.r = Math.random();
-        this.g = Math.random();
-        this.b = Math.random();
+        this.r = c;
+        this.g = c;
+        this.b = c;
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
     }
@@ -206,14 +207,6 @@
         if(y < this.minY) this.minY = y;
         if(y > this.maxY) this.maxY = y;
 
-
-        for(var i = 0; i < this.contorno.length; i++) {
-          if(this.contorno[i].x == x &&
-             this.contorno[i].y == y ) { this.contorno[i] = undefined; break; }
-        }
-
-        this.contorno = this.contorno.compact();
-
         var p1 = new point(x+1,y,-1);
         var p2 = new point(x,y+1,-1);
         var p3 = new point(x-1,y,-1);
@@ -224,12 +217,12 @@
         var p3c = p3.x+p3.y*maxcoord;
         var p4c = p4.x+p4.y*maxcoord;
 
-        if(p1c > 0 && p1c < maxcoord2 && !occupied[p1c].o && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
-        if(p2c > 0 && p2c < maxcoord2 && !occupied[p2c].o && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
-        if(p3c > 0 && p3c < maxcoord2 && !occupied[p3c].o && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3);
-        if(p4c > 0 && p4c < maxcoord2 && !occupied[p4c].o && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
+        if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
+        if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3);
+        if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
 
-	     occupied[x+y*maxcoord].o++;
+	    occupied[x+y*maxcoord].o = 1;
 
         if(this.contorno.length == 0) this.cangrow = 0;
 
@@ -276,13 +269,18 @@
             var c = Math.ceil(Math.random()*(l-1));
             for(var h = 0; h < l; h++)
             {
-               if(this.contorno[c]) {
-                var nx = this.contorno[c].x;
-                var ny = this.contorno[c].y;
+                var cont = this.contorno[c];
+               if(cont) {
+                var nx = cont.x;
+                var ny = cont.y;
+
+                this.contorno[c] = undefined;
+                this.contorno = this.contorno.compact();
 
                 if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
          				&& !occupied[nx+maxcoord*ny].o) {
-                         this.add(nx,ny);
+
+                        this.add(nx,ny);
                          break;
 		               }
                }
@@ -356,7 +354,7 @@
         }*/
 
         // eliminamos las undefined
-        particles = particles.compact();
+        //particles = particles.compact();
 
     }
 
@@ -372,47 +370,56 @@
 
         mat4.translate(mvMatrix, [-4.0, -4.0, -10.0]);
 
+        largoCont = 0;        
 
-        for (var i = 0; i < particles.length ; i++) {
+        var vertices = [];
+        var colors = [];
+        var cant = 0;
 
-		var vertices = [];
-		var colors = [];
-		var cant = 0;
+        setMatrixUniforms();
+        triangleVertexPositionBuffer = gl.createBuffer();
+      	triangleVertexColorBuffer = gl.createBuffer();
 
-            for (var j = 0; j < particles[i].a.length ; j++) {
-                 vertices = vertices.concat(particles[i].a[j].x*0.03,particles[i].a[j].y*0.03,0.0);
-		 colors = colors.concat(particles[i].r,particles[i].g,particles[i].b,1.0);
-                 cant ++;
-		}
+        for (var i = 0; i < particles.length,; i++) {
+            var pi = particles[i];
+            largoCont += pi.contorno.length;
 
-		triangleVertexPositionBuffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-		triangleVertexPositionBuffer.itemSize = 3;
-		triangleVertexPositionBuffer.numItems = cant;
+            vertices = [];
+            colors = [];
+            cant = pi.a.length;
 
-	 	triangleVertexColorBuffer = gl.createBuffer();
-	    	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-	   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-	    	triangleVertexColorBuffer.itemSize = 4;
-	   	triangleVertexColorBuffer.numItems = cant;
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-		gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+            for (var j = 0; j < cant ; j++) {
+                 var piaj = pi.a[j];
+                 vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
+                 colors = colors.concat(pi.r,pi.g,pi.b,1.0);
+                 //cant++;
+		    }
 
 
-		setMatrixUniforms();
-		gl.drawArrays(gl.POINTS, 0, triangleVertexPositionBuffer.numItems);
-	}
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+            triangleVertexPositionBuffer.itemSize = 3;
+            triangleVertexPositionBuffer.numItems = cant;
+            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+           	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+            triangleVertexColorBuffer.itemSize = 4;
+           	triangleVertexColorBuffer.numItems = cant;
+            gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+            gl.drawArrays(gl.POINTS, 0, cant);
+
+	    }
+
 
         generar();
         t++;
         alert(t);
         $('iteracion').innerHTML = t;
-        if(t<TIEMPO) {
+        $('contorno').innerHTML = largoCont;
+        if(t<TIEMPO && largoCont > 0) {
             drawScene();
         }
 
@@ -441,8 +448,9 @@
 
 
 <body onload="webGLStart();">
-    <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas>
    <span id="iteracion">0</span>
+   <span id="contorno">0</span>
+   <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas>
 </body>
 
 </html>
