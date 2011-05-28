@@ -38,6 +38,8 @@
 <script type="text/javascript">
 
     var CANT_PARTICLES = 400;
+    var CANT_NEW_PARTICLES = 15;
+
     var TIEMPO = 40;
 
     var maxcoord = 400;
@@ -179,13 +181,13 @@
         if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p4);
         
 
-        this.rgrowth = Math.ceil(Math.random()*5);
+        this.rgrowth = Math.ceil(Math.random()*2);
         this.cangrow = 1; // crece?
 
         var c = Math.random();
-        this.r = c;
-        this.g = c;
-        this.b = c;
+        this.r = 0.7 + c*0.2;
+        this.g = 0.55 + c*0.2;
+        this.b = 0.25 + c*0.2;
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
     }
@@ -270,7 +272,7 @@
             for(var h = 0; h < l; h++)
             {
                 var cont = this.contorno[c];
-               if(cont) {
+                if(cont) {
                 var nx = cont.x;
                 var ny = cont.y;
 
@@ -281,7 +283,7 @@
          				&& !occupied[nx+maxcoord*ny].o) {
 
                         this.add(nx,ny);
-                         break;
+                        break;
 		               }
                }
                 c = (c+1)%l;
@@ -321,14 +323,17 @@
 
         // nuevas particulas
         var lactual = particles.length;
-        for(var i = 0; i < 0; i++) {
+        var ult = lactual;
+        for(var i = 0; i < CANT_NEW_PARTICLES; i++) {
 
             var x = Math.random();
             var y = Math.random();
 
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
-            particles[lactual+i] = new particle(px,py,i);
+            if(occupied[px+maxcoord*py].o == 0) {
+                particles[ult++] = new particle(px,py,i);
+            }
         }
 
         for(var i = 0; i < particles.length; i++) {
@@ -336,8 +341,6 @@
         };
 
         /*for(var i = 0; i < particles.length; i++) {
-
-            
 
             for(var j = 0; j < particles.length; j++) {
                 if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) { 
@@ -351,10 +354,10 @@
                     }
                 }
             }
-        }*/
+        }
 
         // eliminamos las undefined
-        //particles = particles.compact();
+        particles = particles.compact();*/
 
     }
 
