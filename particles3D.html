@@ -12,24 +12,50 @@
     precision highp float;
     #endif
  
+    uniform vec3 uPointLightingLocation;
+
     varying vec4 vColor;
+    varying vec4 vPosition;
+    varying vec3 vTransformedNormal;
  
     void main(void) {
-        gl_FragColor = vColor;
+        vec3 lightDirection = normalize(uPointLightingLocation - vPosition.xyz);
+        vec3 eyeDirection = normalize(-vPosition.xyz);
+        vec3 normal = normalize(vTransformedNormal);
+
+        vec3 reflectionDirection = reflect(-lightDirection, normal);
+        // halfway vector between L and V
+        vec3 halfv = normalize(eyeDirection + lightDirection);
+        float NH = dot(normal,halfv);
+
+
+        float uMaterialShininess = 64.0;
+        float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
+
+        vec3 spec = vec3(0.8,0.8,0.8) * specularLightWeighting;
+
+        gl_FragColor = vec4(vColor.rgb + spec,vColor.a);
     }
 </script> 
  
 <script id="shader-vs" type="x-shader/x-vertex"> 
     attribute vec3 aVertexPosition;
     attribute vec4 aVertexColor;
+    attribute vec3 aVertexNormal;
  
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
  
     varying vec4 vColor;
+    varying vec4 vPosition;
+    varying vec3 vTransformedNormal;
  
     void main(void) {
+        vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vec3 normal = normalize(vTransformedNormal);
+        vTransformedNormal = uNMatrix * aVertexNormal;
         vColor = aVertexColor;
     }
 </script> 
@@ -38,14 +64,14 @@
 <script type="text/javascript">
 
     var CANT_PARTICLES = 3000;
-    var CANT_NEW_PARTICLES = 100;
+    var CANT_NEW_PARTICLES = 500;
 
-    var TIEMPO = 20;
+    var TIEMPO = 30;
 
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont = 0;
-    var varcolor = 0.2;
+    var varcolor = 0.1;
 
     var occupied = [];
     for(var i = 0; i < maxcoord; i++)
@@ -125,12 +151,18 @@
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-  	shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+        shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
     	gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 
+        shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+        gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
 
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+
+        shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
+        shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+
     }
 
 
@@ -140,6 +172,11 @@
     function setMatrixUniforms() {
         gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
         gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+        var normalMatrix = mat3.create();
+        mat4.toInverseMat3(mvMatrix, normalMatrix);
+        mat3.transpose(normalMatrix);
+        gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
     }
 
 
@@ -382,11 +419,23 @@
 
         var vertices = [];
         var colors = [];
+        var normals = [];
         var cant = 0;
 
         setMatrixUniforms();
         triangleVertexPositionBuffer = gl.createBuffer();
       	triangleVertexColorBuffer = gl.createBuffer();
+        sceneVertexNormalBuffer = gl.createBuffer();
+
+
+        gl.uniform3f(
+            shaderProgram.pointLightingLocationUniform,
+            3.0,0.0,0.0
+            /*parseFloat(document.getElementById("lightPositionX").value),
+            parseFloat(document.getElementById("lightPositionY").value),
+            parseFloat(document.getElementById("lightPositionZ").value)*/
+        );
+
 
         for (var i = 0; i < particles.length; i++) {
             var pi = particles[i];
@@ -394,6 +443,7 @@
 
             vertices = [];
             colors = [];
+            normals = [];
             cant = pi.a.length;
 
             for (var j = 0; j < cant ; j++) {
@@ -403,6 +453,7 @@
 //                 else
                  var c = (Math.random()*2-1)*varcolor;
                  colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
+                 normals = normals.concat(0.0,0.0,1.0,1.0);
 		    }
 
 
@@ -417,6 +468,12 @@
             triangleVertexColorBuffer.itemSize = 4;
            	triangleVertexColorBuffer.numItems = cant;
             gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+            sceneVertexNormalBuffer.itemSize = 3;
+            sceneVertexNormalBuffer.numItems = cant;
+            gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 
             gl.drawArrays(gl.POINTS, 0, cant);
