@@ -71,7 +71,7 @@
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont = 0;
-    var varcolor = 0.1;
+    var varcolor = 0.05;
 
     var occupied = [];
     for(var i = 0; i < maxcoord; i++)
@@ -224,11 +224,11 @@
         this.cangrow = 1; // crece?
 
         var c = Math.random()*2-1;
-        var c1 = [0.2,0.2,0.2];
+        var c1 = [0.3,0.2,0.1];
         var c2 = [0.2,0.05,0.05];
-        var c3 = [0.1,0.1,0.2];
+        var c3 = [0.4,0.3,0.2];
         var cf = [];
-        if(c <= - 0.9) cf = c1; else  {if(c >= -0.4) cf = c2; else cf = c3; }
+        if(c <= - 0.9) cf = c1; else  {if(c >= -0.2) cf = c2; else cf = c3; }
         this.r = cf[0] + c*varcolor;
         this.g = cf[1] + c*varcolor;
         this.b = cf[2] + c*varcolor;
@@ -264,18 +264,18 @@
         var p3c = p3.x+p3.y*maxcoord;
         var p4c = p4.x+p4.y*maxcoord;
 
-//        if(this.orient == 1) {
+        if(this.orient == 1) {
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
-        if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
-//        }
-//        else {
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
         if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
-//       }
+        }
+        else {
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
+        if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
+       }
 
 	    occupied[x+y*maxcoord].o = 1;
 
-        if(this.contorno.length == 0) this.cangrow = 0;
+        if(this.contorno.length == 0 ) this.cangrow = 0;
 
         //this.a = this.a.sort(s);
     };
@@ -437,10 +437,9 @@
 
         gl.uniform3f(
             shaderProgram.pointLightingLocationUniform,
-            3.0,0.0,0.0
-            /*parseFloat(document.getElementById("lightPositionX").value),
+            parseFloat(document.getElementById("lightPositionX").value),
             parseFloat(document.getElementById("lightPositionY").value),
-            parseFloat(document.getElementById("lightPositionZ").value)*/
+            parseFloat(document.getElementById("lightPositionZ").value)
         );
 
 
@@ -488,12 +487,12 @@
 	    }
 
 
-        generar();
         t++;
         alert(t);
         $('iteracion').innerHTML = t;
         $('contorno').innerHTML = largoCont;
         if(t<TIEMPO /*&& ( t<=8 || largoCont > 100000 )*/ ) {
+            generar();
             drawScene();
         }
 
@@ -503,6 +502,7 @@
 
     function webGLStart() {
         var canvas = document.getElementById("lesson01-canvas");
+        $('lightPositionX').onchange = drawScene;
         initGL(canvas);
         initShaders();
 
@@ -525,6 +525,9 @@
    <span id="iteracion">0</span>
    <span id="contorno">0</span>
    <canvas id="lesson01-canvas" style="border: none; background-color: white;" width="400" height="400"></canvas>
+   <input id="lightPositionX" type="text" value="-3.0" />
+   <input id="lightPositionY" type="text" value="0.0" />
+   <input id="lightPositionZ" type="text" value="0.0" />
 </body>
 
 </html>
