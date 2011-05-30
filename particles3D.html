@@ -63,8 +63,8 @@
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 3000;
-    var CANT_NEW_PARTICLES = 500;
+    var CANT_PARTICLES = 1000;
+    var CANT_NEW_PARTICLES = 100;
 
     var TIEMPO = 30;
 
@@ -224,9 +224,14 @@
         this.cangrow = 1; // crece?
 
         var c = Math.random()*2-1;
-        this.r = 0.8 + c*varcolor;
-        this.g = 0.7 + c*varcolor;
-        this.b = 0.6 + c*varcolor;
+        var c1 = [0.2,0.2,0.2];
+        var c2 = [0.2,0.05,0.05];
+        var c3 = [0.1,0.1,0.2];
+        var cf = [];
+        if(c <= - 0.9) cf = c1; else  {if(c >= -0.4) cf = c2; else cf = c3; }
+        this.r = cf[0] + c*varcolor;
+        this.g = cf[1] + c*varcolor;
+        this.b = cf[2] + c*varcolor;
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
         this.orient = Math.ceil(Math.random()*2)
@@ -259,12 +264,14 @@
         var p3c = p3.x+p3.y*maxcoord;
         var p4c = p4.x+p4.y*maxcoord;
 
+//        if(this.orient == 1) {
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
         if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
-
+//        }
+//        else {
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
         if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
-       
+//       }
 
 	    occupied[x+y*maxcoord].o = 1;
 
