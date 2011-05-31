@@ -77,7 +77,7 @@
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont;
     var varcolor;
-    var varparticlecolor = 0.0;
+    var varparticlecolor;
     var c1, c2;
 
     var occupied;
@@ -209,19 +209,39 @@
         var p2 = new point(x,y+1,-1);
         var p3 = new point(x-1,y,-1);
         var p4 = new point(x,y-1,-1);
+        var p5 = new point(x-1,y,-1);
+        var p6 = new point(x+1,y-1,-1);
+        var p7 = new point(x,y-1,-1);
+        var p8 = new point(x-1,y-1,-1);
+
 
         var p1c = p1.x+p1.y*maxcoord;
         var p2c = p2.x+p2.y*maxcoord;
         var p3c = p3.x+p3.y*maxcoord;
         var p4c = p4.x+p4.y*maxcoord;
+        var p5c = p5.x+p5.y*maxcoord;
+        var p6c = p6.x+p6.y*maxcoord;
+        var p7c = p7.x+p7.y*maxcoord;
+        var p8c = p8.x+p8.y*maxcoord;
 
         this.contorno = [];
 
-        if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p1);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3.x+p3.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p3); 
-
-        if(p2c > 0 && p2c < maxcoord2 && occupied[p2.x+p2.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p2);    
-        if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0) this.contorno = this.contorno.concat(p4);
+        if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0)
+            this.contorno = this.contorno.concat(p1);
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3.x+p3.y*maxcoord].o == 0)
+            this.contorno = this.contorno.concat(p3); 
+        if(p2c > 0 && p2c < maxcoord2 && occupied[p2.x+p2.y*maxcoord].o == 0)
+            this.contorno = this.contorno.concat(p2);    
+        if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0)
+            this.contorno = this.contorno.concat(p4);
+        if(p5c > 0 && p5c < maxcoord2 && occupied[p5c].o == 0 && !esta(p5,this.contorno))
+            this.contorno = this.contorno.concat(p5);
+        if(p6c > 0 && p6c < maxcoord2 && occupied[p6c].o == 0 && !esta(p6,this.contorno))
+            this.contorno = this.contorno.concat(p6);
+        if(p7c > 0 && p7c < maxcoord2 && occupied[p7c].o == 0 && !esta(p7,this.contorno))
+            this.contorno = this.contorno.concat(p7);
+        if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
+            this.contorno = this.contorno.concat(p8);
 
 
         this.rgrowth = Math.ceil(Math.random()*40);
@@ -230,8 +250,8 @@
         //var c3 = [0.4,0.3,0.2];
         //c1 = c2 = c3;
         var cf = [];
-        var c = Math.random()*2-1;
-        if(c <= 0.0) cf = c1; else  {cf = c2 }
+        var c = Math.random();
+        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
         this.r = cf[0] + c*varcolor;
         this.g = cf[1] + c*varcolor;
         this.b = cf[2] + c*varcolor;
@@ -257,24 +277,40 @@
         if(y < this.minY) this.minY = y;
         if(y > this.maxY) this.maxY = y;
 
-        var p1 = new point(x+1,y,-1);
-        var p2 = new point(x,y+1,-1);
-        var p3 = new point(x-1,y,-1);
-        var p4 = new point(x,y-1,-1);
+        var p1 = new point(x,y+1,-1);
+        var p2 = new point(x+1,y+1,-1);
+        var p3 = new point(x-1,y+1,-1);
+        var p4 = new point(x+1,y,-1);
+        var p5 = new point(x-1,y,-1);
+        var p6 = new point(x+1,y-1,-1);
+        var p7 = new point(x,y-1,-1);
+        var p8 = new point(x-1,y-1,-1);
 
         var p1c = p1.x+p1.y*maxcoord;
         var p2c = p2.x+p2.y*maxcoord;
         var p3c = p3.x+p3.y*maxcoord;
         var p4c = p4.x+p4.y*maxcoord;
+        var p5c = p5.x+p5.y*maxcoord;
+        var p6c = p6.x+p6.y*maxcoord;
+        var p7c = p7.x+p7.y*maxcoord;
+        var p8c = p8.x+p8.y*maxcoord;
 
-//        if(this.orient == 1) {
-        if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
-        //}
-    //    else {
-    if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
-        if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
-       //}
+        if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno))
+            this.contorno = this.contorno.concat(p1);
+        if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno))
+            this.contorno = this.contorno.concat(p2);
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno))
+            this.contorno = this.contorno.concat(p3); 
+        if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno))
+            this.contorno = this.contorno.concat(p4);
+        if(p5c > 0 && p5c < maxcoord2 && occupied[p5c].o == 0 && !esta(p5,this.contorno))
+            this.contorno = this.contorno.concat(p5);
+        if(p6c > 0 && p6c < maxcoord2 && occupied[p6c].o == 0 && !esta(p6,this.contorno))
+            this.contorno = this.contorno.concat(p6);
+        if(p7c > 0 && p7c < maxcoord2 && occupied[p7c].o == 0 && !esta(p7,this.contorno))
+            this.contorno = this.contorno.concat(p7);
+        if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
+            this.contorno = this.contorno.concat(p8);
 
 	    occupied[x+y*maxcoord].o = 1;
 
@@ -320,7 +356,7 @@
       var maxim = l/this.rgrowth;
 
       for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
-            var c = Math.ceil(Math.random()*(l-1));
+            var c = this.contorno.length-1;//Math.ceil(Math.random()*(l-1));
             for(var h = 0; h < l; h++)
             {
                 var cont = this.contorno[c];
@@ -394,7 +430,8 @@
 
         largoCont = 0;
         for(var i = 0; i < particles.length; i++) {
-           if(particles[i].cangrow && particles[i].a.length < maxSize) particles[i].grow(); // simulacion de crecimiento de la burbuja
+           if(particles[i].cangrow && particles[i].a.length < maxSize)
+               particles[i].grow(); // simulacion de crecimiento de la burbuja
            largoCont += particles[i].contorno.length;
         };
 
@@ -507,6 +544,7 @@
         c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value)];
 
         varcolor = parseFloat($('varcolor').value);
+        varparticlecolor = parseFloat($('varparticlecolor').value);
 
         t = 0;
 
@@ -544,10 +582,13 @@
 
    <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
    <div id = "container" style = "background-color:gray;" >
-       <div style="font-color:white;" >Iteracion: <span id="iteracion">0</span> </div><br/>
+       Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
         <br />
         <table style="border: 0; padding: 10px;">
+            <th>
+            <td>X</td><td>Y</td><td>Z</td><td>Porcentaje</td>
+            </th>
             <tr>
                    <td><b>Posici&oacute;n de la Luz</b></td>
                    <td><input id="lightPositionX" type="text" value="-3.0" size=5 /></td>
@@ -559,12 +600,14 @@
                    <td><input id="c1r" type="text" value="0.3" size=5 /></td>
                    <td><input id="c1g" type="text" value="0.2" size=5 /></td>
                    <td><input id="c1b" type="text" value="0.1" size=5 /></td>
+                   <td><input id="c1p" type="text" value="50" size=5 /></td>
             </tr>
             <tr>
                    <td><b>Color 2</b></td>
                    <td><input id="c2r" type="text" value="0.3" size=5 /></td>
                    <td><input id="c2g" type="text" value="0.1" size=5 /></td>
                    <td><input id="c2b" type="text" value="0.2" size=5 /></td>
+                   <!--<td><input id="c2p" type="text" value="0.5" size=5 /></td>-->
             </tr>
         </table>
         <table>
@@ -582,6 +625,9 @@
             </tr>
             <tr>
                   <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.2" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.2" size=5 /></td>
             </tr>
         </table>
         <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
