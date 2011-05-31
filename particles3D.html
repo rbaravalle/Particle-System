@@ -1,7 +1,7 @@
 <html>
 
 <head>
-<title>Learning WebGL &mdash; lesson 1</title>
+<title>Sistema de Part&iacute;culas</title>
 <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
 
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
@@ -29,12 +29,15 @@
         float NH = dot(normal,halfv);
 
 
-        float uMaterialShininess = 64.0;
+        float uMaterialShininess = 32.0;
         float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
+        float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 
         vec3 spec = vec3(0.8,0.8,0.8) * specularLightWeighting;
+        vec3 diffuse = vec3(0.8,0.8,0.8) * diffuseLightWeighting;
+        spec += diffuse + vec3(0.2,0.2,0.2);
 
-        gl_FragColor = vec4(vColor.rgb + spec,vColor.a);
+        gl_FragColor = vec4(vColor.rgb * spec,vColor.a);
     }
 </script> 
  
@@ -63,23 +66,21 @@
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 6000;
-    var CANT_NEW_PARTICLES = 0;
+    var CANT_PARTICLES = 15000;
+    var CANT_NEW_PARTICLES = 1000;
 
-    var TIEMPO = 100;
+    var TIEMPO;
 
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont = 0;
     var varcolor = 0.2;
+    var c1, c2;
 
-    var occupied = [];
-    for(var i = 0; i < maxcoord; i++)
-	   for(var j = 0; j < maxcoord; j++)
-	    occupied[i+j*maxcoord] = new point(i,j,-1);
+    var occupied;
 
     var t = 0;
-    var particles = [];
+    var particles;
 
     var gl;
     function initGL(canvas) {
@@ -223,13 +224,11 @@
         this.rgrowth = Math.ceil(Math.random()*40);
         this.cangrow = 1; // crece?
 
-        var c = Math.random()*2-1;
-        var c1 = [0.3,0.2,0.1];
-        var c2 = [0.2,0.05,0.05];
-        var c3 = [0.4,0.3,0.2];
-        c1 = c2 = c3;
+        //var c3 = [0.4,0.3,0.2];
+        //c1 = c2 = c3;
         var cf = [];
-        if(c <= - 0.9) cf = c1; else  {if(c >= -0.2) cf = c2; else cf = c3; }
+        if(c <= 0.0) cf = c1; else  {cf = c2 }
+        var c = Math.random()*2-1;
         this.r = cf[0] + c*varcolor;
         this.g = cf[1] + c*varcolor;
         this.b = cf[2] + c*varcolor;
@@ -356,6 +355,7 @@
     }
 
     function init_particles() {
+        particles = [];
         for(var i = 0; i < CANT_PARTICLES; i++) {
 
             var x = Math.random();
@@ -421,7 +421,7 @@
 
         mat4.identity(mvMatrix);
 
-        mat4.translate(mvMatrix, [-4.0, -2.0, -10.0]);
+        mat4.translate(mvMatrix, [-2.0, -2.0, -6.0]);
 
         largoCont = 0;        
 
@@ -458,7 +458,7 @@
                  vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
                  //if(cant > 200) colors = colors.concat(0.1,0.1,0.1,1.0);
 //                 else
-                 var c = (Math.random()*2-1)*varcolor;
+                 var c = (Math.random()*2-1)*(varcolor-0.1);
                  colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
                  normals = normals.concat(0.0,0.0,1.0,1.0);
 		    }
@@ -499,6 +499,23 @@
 
     }
 
+    function init_variables() {
+        TIEMPO = $('tiempo').value;
+        c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value)];
+        c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value)];
+
+        particles = [];
+
+        t = 0;
+
+        occupied = [];
+        for(var i = 0; i < maxcoord; i++)
+            for(var j = 0; j < maxcoord; j++)
+                occupied[i+j*maxcoord] = new point(i,j,-1);
+
+        init_particles();
+
+    }
 
 
     function webGLStart() {
@@ -510,9 +527,7 @@
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
-        init_particles();
-
-        drawScene();
+        //drawScene();
     }
 
 
@@ -522,13 +537,40 @@
 </head>
 
 
-<body onload="webGLStart();">
-   <span id="iteracion">0</span>
-   <span id="contorno">0</span>
-   <canvas id="lesson01-canvas" style="border: none; background-color: white;" width="400" height="400"></canvas>
-   <input id="lightPositionX" type="text" value="-3.0" />
-   <input id="lightPositionY" type="text" value="0.0" />
-   <input id="lightPositionZ" type="text" value="0.0" />
+<body onload="webGLStart();" style="background-color:black;" >
+
+   <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
+
+   <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
+   <div id = "container" style = "background-color:gray;" >
+       <div style="font-color:white;" >Iteracion: <span id="iteracion">0</span> </div><br/>
+       Contorno: <span id="contorno">0</span>
+        <br />
+        <table style="border: 0; padding: 10px;">
+            <tr>
+                   <td><b>Posici&oacute;n de la Luz</b></td>
+                   <td><input id="lightPositionX" type="text" value="-3.0" size=5 /></td>
+                   <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
+                   <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
+            </tr>
+            <tr>
+                   <td><b>Color 1</b></td>
+                   <td><input id="c1r" type="text" value="0.3" size=5 /></td>
+                   <td><input id="c1g" type="text" value="0.2" size=5 /></td>
+                   <td><input id="c1b" type="text" value="0.1" size=5 /></td>
+            </tr>
+            <tr>
+                   <td><b>Color 2</b></td>
+                   <td><input id="c2r" type="text" value="0.3" size=5 /></td>
+                   <td><input id="c2g" type="text" value="0.1" size=5 /></td>
+                   <td><input id="c2b" type="text" value="0.2" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5" size=3 /></td>
+            </tr>
+        </table>
+        <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
+    </div>
 </body>
 
 </html>
