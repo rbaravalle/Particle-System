@@ -38,6 +38,7 @@
         spec += diffuse + vec3(0.2,0.2,0.2);
 
         gl_FragColor = vec4(vColor.rgb * spec,vColor.a);
+        //gl_FragColor = vColor;
     }
 </script> 
  
@@ -73,8 +74,9 @@
 
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
-    var largoCont = 0;
+    var largoCont;
     var varcolor = 0.2;
+    var varparticlecolor = 0.1;
     var c1, c2;
 
     var occupied;
@@ -419,8 +421,9 @@
 
     function drawScene() {
 
-        for(var i = 0; i < TIEMPO ; i++) {
-            mover();
+        mover();
+        for(var it = 0; it < TIEMPO-1 ; it++) {
+            if(largoCont > 0) mover(); else break;
         }
 
             gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -452,7 +455,6 @@
 
             for (var i = 0; i < particles.length; i++) {
                 var pi = particles[i];
-                largoCont += pi.contorno.length;
 
                 vertices = [];
                 colors = [];
@@ -462,9 +464,9 @@
                 for (var j = 0; j < cant ; j++) {
                      var piaj = pi.a[j];
                      vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
-                     var c = (Math.random()*2-1)*(varcolor-0.1);
+                     var c = (Math.random()*2-1)*(varparticlecolor);
                      colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
-                     normals = normals.concat(0.0,0.0,1.0,1.0);
+                     normals = normals.concat(0.0,0.0,1.0);
 		        }
 
 
@@ -491,7 +493,7 @@
 
 	        }
             //alert(t);
-            $('iteracion').innerHTML = TIEMPO;
+            $('iteracion').innerHTML = it;
             $('contorno').innerHTML = largoCont;
         //}
 
