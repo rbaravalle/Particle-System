@@ -71,12 +71,13 @@
     var CANT_NEW_PARTICLES;
 
     var TIEMPO;
+    var maxSize;
 
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont;
     var varcolor = 0.2;
-    var varparticlecolor = 0.1;
+    var varparticlecolor = 0.0;
     var c1, c2;
 
     var occupied;
@@ -359,6 +360,7 @@
     function init_particles() {
         CANT_PARTICLES = parseFloat($('cantp').value);
         CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
+        maxSize = parseFloat($('maxSize').value);
         particles = [];
         for(var i = 0; i < CANT_PARTICLES; i++) {
 
@@ -392,7 +394,7 @@
 
         largoCont = 0;
         for(var i = 0; i < particles.length; i++) {
-           if(particles[i].cangrow) particles[i].grow(); // simulacion de crecimiento de la burbuja
+           if(particles[i].cangrow && particles[i].a.length < maxSize) particles[i].grow(); // simulacion de crecimiento de la burbuja
            largoCont += particles[i].contorno.length;
         };
 
@@ -493,7 +495,7 @@
 
 	        }
             //alert(t);
-            $('iteracion').innerHTML = it;
+            $('iteracion').innerHTML = it+1;
             $('contorno').innerHTML = largoCont;
         //}
 
@@ -572,6 +574,9 @@
             </tr>
             <tr>
                   <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
+            </tr>
+<tr>
+                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="1000" size=5 /></td>
             </tr>
         </table>
         <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
