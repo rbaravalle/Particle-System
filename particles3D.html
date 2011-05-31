@@ -66,8 +66,8 @@
 
 <script type="text/javascript">
 
-    var CANT_PARTICLES = 15000;
-    var CANT_NEW_PARTICLES = 1000;
+    var CANT_PARTICLES;
+    var CANT_NEW_PARTICLES;
 
     var TIEMPO;
 
@@ -227,8 +227,8 @@
         //var c3 = [0.4,0.3,0.2];
         //c1 = c2 = c3;
         var cf = [];
-        if(c <= 0.0) cf = c1; else  {cf = c2 }
         var c = Math.random()*2-1;
+        if(c <= 0.0) cf = c1; else  {cf = c2 }
         this.r = cf[0] + c*varcolor;
         this.g = cf[1] + c*varcolor;
         this.b = cf[2] + c*varcolor;
@@ -264,11 +264,11 @@
         var p3c = p3.x+p3.y*maxcoord;
         var p4c = p4.x+p4.y*maxcoord;
 
-        //if(this.orient == 1) {
-        /*if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); */
+//        if(this.orient == 1) {
+        if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno)) this.contorno = this.contorno.concat(p1);
+        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno)) this.contorno = this.contorno.concat(p3); 
         //}
-        //else {
+    //    else {
     if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno)) this.contorno = this.contorno.concat(p4);
         if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno)) this.contorno = this.contorno.concat(p2);
        //}
@@ -355,6 +355,8 @@
     }
 
     function init_particles() {
+        CANT_PARTICLES = parseFloat($('cantp').value);
+        CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
         particles = [];
         for(var i = 0; i < CANT_PARTICLES; i++) {
 
@@ -368,8 +370,8 @@
 
     }
 
-    // dibuja en el cuadrado representado por (x0,y0) y (x1,y1)
-    function generar() {
+    // una iteracion del algoritmo
+    function mover() {
 
         // nuevas particulas
         var lactual = particles.length;
@@ -386,8 +388,10 @@
             }
         }
 
+        largoCont = 0;
         for(var i = 0; i < particles.length; i++) {
            if(particles[i].cangrow) particles[i].grow(); // simulacion de crecimiento de la burbuja
+           largoCont += particles[i].contorno.length;
         };
 
         /*for(var i = 0; i < particles.length; i++) {
@@ -414,88 +418,82 @@
 
 
     function drawScene() {
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-
-        mat4.identity(mvMatrix);
-
-        mat4.translate(mvMatrix, [-2.0, -2.0, -6.0]);
-
-        largoCont = 0;        
-
-        var vertices = [];
-        var colors = [];
-        var normals = [];
-        var cant = 0;
-
-        setMatrixUniforms();
-        triangleVertexPositionBuffer = gl.createBuffer();
-      	triangleVertexColorBuffer = gl.createBuffer();
-        sceneVertexNormalBuffer = gl.createBuffer();
-
-
-        gl.uniform3f(
-            shaderProgram.pointLightingLocationUniform,
-            parseFloat(document.getElementById("lightPositionX").value),
-            parseFloat(document.getElementById("lightPositionY").value),
-            parseFloat(document.getElementById("lightPositionZ").value)
-        );
-
-
-        for (var i = 0; i < particles.length; i++) {
-            var pi = particles[i];
-            largoCont += pi.contorno.length;
-
-            vertices = [];
-            colors = [];
-            normals = [];
-            cant = pi.a.length;
-
-            for (var j = 0; j < cant ; j++) {
-                 var piaj = pi.a[j];
-                 vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
-                 //if(cant > 200) colors = colors.concat(0.1,0.1,0.1,1.0);
-//                 else
-                 var c = (Math.random()*2-1)*(varcolor-0.1);
-                 colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
-                 normals = normals.concat(0.0,0.0,1.0,1.0);
-		    }
-
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-            triangleVertexPositionBuffer.itemSize = 3;
-            triangleVertexPositionBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-           	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-            triangleVertexColorBuffer.itemSize = 4;
-           	triangleVertexColorBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-            sceneVertexNormalBuffer.itemSize = 3;
-            sceneVertexNormalBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-
-            gl.drawArrays(gl.POINTS, 0, cant);
-
-	    }
-
-
-        t++;
-        //alert(t);
-        $('iteracion').innerHTML = t;
-        $('contorno').innerHTML = largoCont;
-        if(t < TIEMPO && largoCont > 0/*&& ( t<=8 || largoCont > 100000 )*/ ) {
-            generar();
-            drawScene();
+        for(var i = 0; i < TIEMPO ; i++) {
+            mover();
         }
+
+            gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+            mat4.identity(mvMatrix);
+
+            mat4.translate(mvMatrix, [-2.0, -2.0, -6.0]);
+
+            var vertices = [];
+            var colors = [];
+            var normals = [];
+            var cant = 0;
+
+            setMatrixUniforms();
+            triangleVertexPositionBuffer = gl.createBuffer();
+          	triangleVertexColorBuffer = gl.createBuffer();
+            sceneVertexNormalBuffer = gl.createBuffer();
+
+
+            gl.uniform3f(
+                shaderProgram.pointLightingLocationUniform,
+                parseFloat(document.getElementById("lightPositionX").value),
+                parseFloat(document.getElementById("lightPositionY").value),
+                parseFloat(document.getElementById("lightPositionZ").value)
+            );
+
+            for (var i = 0; i < particles.length; i++) {
+                var pi = particles[i];
+                largoCont += pi.contorno.length;
+
+                vertices = [];
+                colors = [];
+                normals = [];
+                cant = pi.a.length;
+
+                for (var j = 0; j < cant ; j++) {
+                     var piaj = pi.a[j];
+                     vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
+                     var c = (Math.random()*2-1)*(varcolor-0.1);
+                     colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
+                     normals = normals.concat(0.0,0.0,1.0,1.0);
+		        }
+
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                triangleVertexPositionBuffer.itemSize = 3;
+                triangleVertexPositionBuffer.numItems = cant;
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+               	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+                triangleVertexColorBuffer.itemSize = 4;
+               	triangleVertexColorBuffer.numItems = cant;
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+                sceneVertexNormalBuffer.itemSize = 3;
+                sceneVertexNormalBuffer.numItems = cant;
+                gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+                gl.drawArrays(gl.POINTS, 0, cant);
+
+	        }
+            //alert(t);
+            $('iteracion').innerHTML = TIEMPO;
+            $('contorno').innerHTML = largoCont;
+        //}
 
     }
 
@@ -503,8 +501,6 @@
         TIEMPO = $('tiempo').value;
         c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value)];
         c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value)];
-
-        particles = [];
 
         t = 0;
 
@@ -520,7 +516,6 @@
 
     function webGLStart() {
         var canvas = document.getElementById("lesson01-canvas");
-        $('lightPositionX').onchange = drawScene;
         initGL(canvas);
         initShaders();
 
@@ -565,8 +560,16 @@
                    <td><input id="c2g" type="text" value="0.1" size=5 /></td>
                    <td><input id="c2b" type="text" value="0.2" size=5 /></td>
             </tr>
+        </table>
+        <table>
             <tr>
-                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5" size=3 /></td>
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5" size=3 /></td> 
+            </tr>
+            <tr>
+                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="5000" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
             </tr>
         </table>
         <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
