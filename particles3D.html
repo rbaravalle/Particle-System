@@ -76,7 +76,7 @@
     var maxcoord = 400;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont;
-    var varcolor = 0.2;
+    var varcolor;
     var varparticlecolor = 0.0;
     var c1, c2;
 
@@ -506,6 +506,8 @@
         c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value)];
         c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value)];
 
+        varcolor = parseFloat($('varcolor').value);
+
         t = 0;
 
         occupied = [];
@@ -575,8 +577,11 @@
             <tr>
                   <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
             </tr>
-<tr>
+            <tr>
                   <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="1000" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.2" size=5 /></td>
             </tr>
         </table>
         <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
