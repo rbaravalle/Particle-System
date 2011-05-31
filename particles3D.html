@@ -201,8 +201,16 @@
         var p = new point(x,y,i);
 
         this.i = i;
-        this.vx = Math.random()*2-1;
-        this.vy = Math.random()*2-1;
+        // direccion de crecimiento
+
+        // posibles direcciones de crecimiento
+        var v1 = [1,1];
+        var v2 = [1,0];
+        var v3 = [0,1];
+
+        if($('sel1').value == 1) this.vx = v1[0]; else this.vx = v2[0]; //Math.ceil(Math.random()*2-1);
+        if($('sel1').value == 1) this.vy = v1[1]; else this.vy = v2[1]; //Math.ceil(Math.random()*2-1);
+
         this.a = [p];
        
         var p1 = new point(x+1,y,-1);
@@ -350,31 +358,45 @@
         this.maxY = Math.max(this.maxY, p.maxY);
     };
 
+    particle.prototype.buscarEnContorno = function(x,y) {
+        for(var i = 0; i < this.contorno.length; i++)
+            if(this.contorno[i].x == x && this.contorno[i].y == y) return i;
+
+        return 0; // no esta en el contorno, crece arbitrariamente
+    };
+
     particle.prototype.grow = function() {
       var fin = false;
       var l = this.contorno.length;
       var maxim = l/this.rgrowth;
 
       for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
-            var c = this.contorno.length-1;//Math.ceil(Math.random()*(l-1));
+            var ultPart = this.a[this.a.length-1];
+
+            // proxima particula, tiene en cuenta la direccion de crecimiento
+            var nextPartX = ultPart.x+this.vx;
+            var nextPartY = ultPart.y+this.vy;
+
+            var c = this.buscarEnContorno(nextPartX,nextPartY);
+            
             for(var h = 0; h < l; h++)
             {
                 var cont = this.contorno[c];
-                if(cont) {
+                
                 var nx = cont.x;
                 var ny = cont.y;
-
-                this.contorno[c] = undefined;
-                this.contorno = this.contorno.compact();
 
                 if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
          				&& !occupied[nx+maxcoord*ny].o) {
 
+                        this.contorno[c] = undefined;
+                        this.contorno = this.contorno.compact();
+
                         this.add(nx,ny);
                         break;
 		               }
-               }
-                c = (c+1)%l;
+
+                c = (c+1)%(this.contorno.length-1);
             }
       }
     };
@@ -587,7 +609,7 @@
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
-            <td>X</td><td>Y</td><td>Z</td><td>Porcentaje</td>
+            <td>R</td><td>G</td><td>B</td><td>Porcentaje</td><td>Direcci&oacute;n</td>
             </th>
             <tr>
                    <td><b>Posici&oacute;n de la Luz</b></td>
@@ -601,6 +623,13 @@
                    <td><input id="c1g" type="text" value="0.2" size=5 /></td>
                    <td><input id="c1b" type="text" value="0.1" size=5 /></td>
                    <td><input id="c1p" type="text" value="50" size=5 /></td>
+                   <td><select id="sel1"  value="50" >
+                        <option value ="0">Random</option>
+                        <option value ="1">Diagonal</option>
+                        <option value ="2">Vertical</option>
+                        <option value ="3">Horizontal</option>
+                    </select>
+                   </td>
             </tr>
             <tr>
                    <td><b>Color 2</b></td>
@@ -608,6 +637,14 @@
                    <td><input id="c2g" type="text" value="0.1" size=5 /></td>
                    <td><input id="c2b" type="text" value="0.2" size=5 /></td>
                    <!--<td><input id="c2p" type="text" value="0.5" size=5 /></td>-->
+                    <td></td>
+                   <td><select id="sel2"  value="50" >
+                        <option value ="0">Random</option>
+                        <option value ="1">Diagonal</option>
+                        <option value ="2">Vertical</option>
+                        <option value ="3">Horizontal</option>
+                    </select>
+                   </td>
             </tr>
         </table>
         <table>
