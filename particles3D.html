@@ -201,26 +201,17 @@
         var p = new point(x,y,i);
 
         this.i = i;
-        // direccion de crecimiento
-
-        // posibles direcciones de crecimiento
-        var v1 = [1,1];
-        var v2 = [1,0];
-        var v3 = [0,1];
-
-        if($('sel1').value == 1) this.vx = v1[0]; else this.vx = v2[0]; //Math.ceil(Math.random()*2-1);
-        if($('sel1').value == 1) this.vy = v1[1]; else this.vy = v2[1]; //Math.ceil(Math.random()*2-1);
 
         this.a = [p];
        
-        var p1 = new point(x+1,y,-1);
+        var p1 = new point(x-1,y+1,-1);
         var p2 = new point(x,y+1,-1);
-        var p3 = new point(x-1,y,-1);
-        var p4 = new point(x,y-1,-1);
-        var p5 = new point(x-1,y,-1);
-        var p6 = new point(x+1,y-1,-1);
+        var p3 = new point(x+1,y+1,-1);
+        var p4 = new point(x-1,y,-1);
+        var p5 = new point(x+1,y,-1);
+        var p6 = new point(x-1,y-1,-1);
         var p7 = new point(x,y-1,-1);
-        var p8 = new point(x-1,y-1,-1);
+        var p8 = new point(x+1,y-1,-1);
 
 
         var p1c = p1.x+p1.y*maxcoord;
@@ -233,6 +224,31 @@
         var p8c = p8.x+p8.y*maxcoord;
 
         this.contorno = [];
+
+        // direccion de crecimiento
+
+        if($('sel1').value == 0) {
+            this.vx = 0;
+            this.vy = 0;
+            // limitamos el crecimiento hacia determinadas direcciones
+            p1c = p3c = p6c = p8c = 0;
+        }
+        if($('sel1').value == 1) {
+            this.vx = 1;
+            this.vy = 1;
+            p1c = p4c = p6c = p7c = p8c = 0;
+        }
+        if($('sel1').value == 2) {
+            this.vx = 0;
+            this.vy = 1;
+            p4c = p5c = p6c = p7c = p8c = 0;
+        }
+        if($('sel1').value == 3) {
+            this.vx = 1;
+            this.vy = 0;    
+            p1c = p2c = p4c = p6c = p7c = 0;
+        }
+        
 
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0)
             this.contorno = this.contorno.concat(p1);
@@ -252,7 +268,7 @@
             this.contorno = this.contorno.concat(p8);
 
 
-        this.rgrowth = Math.ceil(Math.random()*40);
+        this.rgrowth = Math.ceil(Math.random()*10);
         this.cangrow = 1; // crece?
 
         //var c3 = [0.4,0.3,0.2];
@@ -285,14 +301,14 @@
         if(y < this.minY) this.minY = y;
         if(y > this.maxY) this.maxY = y;
 
-        var p1 = new point(x,y+1,-1);
-        var p2 = new point(x+1,y+1,-1);
-        var p3 = new point(x-1,y+1,-1);
-        var p4 = new point(x+1,y,-1);
-        var p5 = new point(x-1,y,-1);
-        var p6 = new point(x+1,y-1,-1);
+        var p1 = new point(x-1,y+1,-1);
+        var p2 = new point(x,y+1,-1);
+        var p3 = new point(x+1,y+1,-1);
+        var p4 = new point(x-1,y,-1);
+        var p5 = new point(x+1,y,-1);
+        var p6 = new point(x-1,y-1,-1);
         var p7 = new point(x,y-1,-1);
-        var p8 = new point(x-1,y-1,-1);
+        var p8 = new point(x+1,y-1,-1);
 
         var p1c = p1.x+p1.y*maxcoord;
         var p2c = p2.x+p2.y*maxcoord;
@@ -302,6 +318,19 @@
         var p6c = p6.x+p6.y*maxcoord;
         var p7c = p7.x+p7.y*maxcoord;
         var p8c = p8.x+p8.y*maxcoord;
+
+        if($('sel1').value == 0) {
+            p1c = p3c = p6c = p8c = 0;
+        }
+        if($('sel1').value == 1) {
+            p1c = p4c = p6c = p7c = p8c = 0;
+        }
+        if($('sel1').value == 2) {
+            p4c = p5c = p6c = p7c = p8c = 0;
+        }
+        if($('sel1').value == 3) {
+            p1c = p2c = p4c = p6c = p7c = 0;
+        }
 
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno))
             this.contorno = this.contorno.concat(p1);
@@ -374,12 +403,18 @@
             var ultPart = this.a[this.a.length-1];
 
             // proxima particula, tiene en cuenta la direccion de crecimiento
-            var nextPartX = ultPart.x+this.vx;
-            var nextPartY = ultPart.y+this.vy;
+            var c;
+            if(this.vx == 0 && this.vy == 0) {
+                c = Math.ceil(Math.random()*(this.contorno.length-1));
+            }
+            else {
+                var nextPartX = ultPart.x+this.vx;
+                var nextPartY = ultPart.y+this.vy;
+                c = this.buscarEnContorno(nextPartX,nextPartY);
+            }
 
-            var c = this.buscarEnContorno(nextPartX,nextPartY);
             
-            for(var h = 0; h < l; h++)
+            for(var h = 0; h < this.contorno.length; h++)
             {
                 var cont = this.contorno[c];
                 
@@ -636,15 +671,9 @@
                    <td><input id="c2r" type="text" value="0.3" size=5 /></td>
                    <td><input id="c2g" type="text" value="0.1" size=5 /></td>
                    <td><input id="c2b" type="text" value="0.2" size=5 /></td>
-                   <!--<td><input id="c2p" type="text" value="0.5" size=5 /></td>-->
                     <td></td>
-                   <td><select id="sel2"  value="50" >
-                        <option value ="0">Random</option>
-                        <option value ="1">Diagonal</option>
-                        <option value ="2">Vertical</option>
-                        <option value ="3">Horizontal</option>
-                    </select>
-                   </td>
+                    <td></td>
+
             </tr>
         </table>
         <table>
@@ -661,10 +690,10 @@
                   <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="1000" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.2" size=5 /></td>
+                  <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.1" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.2" size=5 /></td>
+                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.1" size=5 /></td>
             </tr>
         </table>
         <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
