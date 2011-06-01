@@ -242,47 +242,7 @@
         this.maxY = this.minY = y;
 
         this.add(x,y);
-        /*var p1 = new point(x-1,y+1,-1,r,g,b);
-        var p2 = new point(x,y+1,-1,r,g,b);
-        var p3 = new point(x+1,y+1,-1,r,g,b);
-        var p4 = new point(x-1,y,-1,r,g,b);
-        var p5 = new point(x+1,y,-1,r,g,b);
-        var p6 = new point(x-1,y-1,-1,r,g,b);
-        var p7 = new point(x,y-1,-1,r,g,b);
-        var p8 = new point(x+1,y-1,-1,r,g,b);
-
-
-        var p1c = p1.x+p1.y*maxcoord;
-        var p2c = p2.x+p2.y*maxcoord;
-        var p3c = p3.x+p3.y*maxcoord;
-        var p4c = p4.x+p4.y*maxcoord;
-        var p5c = p5.x+p5.y*maxcoord;
-        var p6c = p6.x+p6.y*maxcoord;
-        var p7c = p7.x+p7.y*maxcoord;
-        var p8c = p8.x+p8.y*maxcoord;
-
-        this.contorno = [];
        
-
-        if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0)
-            this.contorno = this.contorno.concat(p1);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3.x+p3.y*maxcoord].o == 0)
-            this.contorno = this.contorno.concat(p3); 
-        if(p2c > 0 && p2c < maxcoord2 && occupied[p2.x+p2.y*maxcoord].o == 0)
-            this.contorno = this.contorno.concat(p2);    
-        if(p4c > 0 && p4c < maxcoord2 && occupied[p4.x+p4.y*maxcoord].o == 0)
-            this.contorno = this.contorno.concat(p4);
-        if(p5c > 0 && p5c < maxcoord2 && occupied[p5c].o == 0 && !esta(p5,this.contorno))
-            this.contorno = this.contorno.concat(p5);
-        if(p6c > 0 && p6c < maxcoord2 && occupied[p6c].o == 0 && !esta(p6,this.contorno))
-            this.contorno = this.contorno.concat(p6);
-        if(p7c > 0 && p7c < maxcoord2 && occupied[p7c].o == 0 && !esta(p7,this.contorno))
-            this.contorno = this.contorno.concat(p7);
-        if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
-            this.contorno = this.contorno.concat(p8);
-*/
-
-        //this.orient = Math.ceil(Math.random()*2)
     }
 
     function s(p1,p2) {
@@ -554,49 +514,46 @@
                 parseFloat(document.getElementById("lightPositionZ").value)
             );
 
-            for (var i = 0; i < particles.length; i++) {
-                var pi = particles[i];
 
-                vertices = [];
-                colors = [];
-                normals = [];
-                cant = pi.a.length;
+            vertices = [];
+            colors = [];
+            normals = [];
 
-                for (var j = 0; j < cant ; j++) {
-                     var piaj = pi.a[j];
-                     vertices = vertices.concat(piaj.x*0.01,piaj.y*0.01,0.0);
+            var cant = 0;
+            for (var j = 0; j < maxcoord2 ; j++) {
+                 var p = occupied[j];
+                 if(p && p.o) {
+                     vertices = vertices.concat(p.x*0.01,p.y*0.01,0.0);
                      var c = (Math.random()*2-1)*(varparticlecolor);
-                     colors = colors.concat(pi.r+c,pi.g+c,pi.b+c,1.0);
+                     colors = colors.concat(p.r+c,p.g+c,p.b+c,1.0);
                      normals = normals.concat(0.0,0.0,1.0);
-		        }
-
-
-                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-                triangleVertexPositionBuffer.itemSize = 3;
-                triangleVertexPositionBuffer.numItems = cant;
-                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-               	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-                triangleVertexColorBuffer.itemSize = 4;
-               	triangleVertexColorBuffer.numItems = cant;
-                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-                gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-                sceneVertexNormalBuffer.itemSize = 3;
-                sceneVertexNormalBuffer.numItems = cant;
-                gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-
-                gl.drawArrays(gl.POINTS, 0, cant);
-
+                     cant++;
+                }
 	        }
-            //alert(t);
-            $('iteracion').innerHTML = it+1;
-            $('contorno').innerHTML = largoCont;
-        //}
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+            triangleVertexPositionBuffer.itemSize = 3;
+            triangleVertexPositionBuffer.numItems = cant;
+            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+           	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+            triangleVertexColorBuffer.itemSize = 4;
+           	triangleVertexColorBuffer.numItems = cant;
+            gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+            sceneVertexNormalBuffer.itemSize = 3;
+            sceneVertexNormalBuffer.numItems = cant;
+            gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+            gl.drawArrays(gl.POINTS, 0, cant);
+
+        $('iteracion').innerHTML = it+1;
+        $('contorno').innerHTML = largoCont;
 
     }
 
