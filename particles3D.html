@@ -189,29 +189,67 @@
     var triangleVertexColorBuffer;
 
 
-     function point(x,y,i) {
+     function point(x,y,i,r,g,b) {
         this.x = x
         this.y = y
         this.particle = i
         if(i >= 0) this.o = 1; else this.o = 0;
+        this.r = r || 0;
+        this.g = g || 0;
+        this.b = b || 0;
     }
 
     // cada particula cuenta con multiples puntos
     function particle(x,y,i) {
-        var p = new point(x,y,i);
+
+        var cf = [];
+        var c = Math.random();
+        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
+        var d = 0.003921569; // 1/255
+        this.r = cf[0]*d + c*varcolor;
+        this.g = cf[1]*d + c*varcolor;
+        this.b = cf[2]*d + c*varcolor;
+
+        //var p = new point(x,y,i,r,g,b);
 
         this.i = i;
 
-        this.a = [p];
-       
-        var p1 = new point(x-1,y+1,-1);
-        var p2 = new point(x,y+1,-1);
-        var p3 = new point(x+1,y+1,-1);
-        var p4 = new point(x-1,y,-1);
-        var p5 = new point(x+1,y,-1);
-        var p6 = new point(x-1,y-1,-1);
-        var p7 = new point(x,y-1,-1);
-        var p8 = new point(x+1,y-1,-1);
+        this.a = [];
+        this.contorno = [];
+
+        // direccion de crecimiento
+
+        if($('sel1').value == 0) {
+            this.vx = 0;
+            this.vy = 0;
+        }
+        if($('sel1').value == 1) {
+            this.vx = 1;
+            this.vy = 1;
+        }
+        if($('sel1').value == 2) {
+            this.vx = 0;
+            this.vy = 1;
+        }
+        if($('sel1').value == 3) {
+            this.vx = 1;
+            this.vy = 0;    
+        }
+        this.rgrowth = Math.ceil(Math.random()*10);
+        this.cangrow = 1; // crece?
+
+        this.maxX = this.minX = x;
+        this.maxY = this.minY = y;
+
+        this.add(x,y);
+        /*var p1 = new point(x-1,y+1,-1,r,g,b);
+        var p2 = new point(x,y+1,-1,r,g,b);
+        var p3 = new point(x+1,y+1,-1,r,g,b);
+        var p4 = new point(x-1,y,-1,r,g,b);
+        var p5 = new point(x+1,y,-1,r,g,b);
+        var p6 = new point(x-1,y-1,-1,r,g,b);
+        var p7 = new point(x,y-1,-1,r,g,b);
+        var p8 = new point(x+1,y-1,-1,r,g,b);
 
 
         var p1c = p1.x+p1.y*maxcoord;
@@ -224,31 +262,7 @@
         var p8c = p8.x+p8.y*maxcoord;
 
         this.contorno = [];
-
-        // direccion de crecimiento
-
-        if($('sel1').value == 0) {
-            this.vx = 0;
-            this.vy = 0;
-            // limitamos el crecimiento hacia determinadas direcciones
-            p1c = p3c = p6c = p8c = 0;
-        }
-        if($('sel1').value == 1) {
-            this.vx = 1;
-            this.vy = 1;
-            p1c = p4c = p6c = p7c = p8c = 0;
-        }
-        if($('sel1').value == 2) {
-            this.vx = 0;
-            this.vy = 1;
-            p4c = p5c = p6c = p7c = p8c = 0;
-        }
-        if($('sel1').value == 3) {
-            this.vx = 1;
-            this.vy = 0;    
-            p1c = p2c = p4c = p6c = p7c = 0;
-        }
-        
+       
 
         if(p1c > 0 && p1c < maxcoord2 && occupied[p1.x+p1.y*maxcoord].o == 0)
             this.contorno = this.contorno.concat(p1);
@@ -266,22 +280,9 @@
             this.contorno = this.contorno.concat(p7);
         if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
             this.contorno = this.contorno.concat(p8);
+*/
 
-
-        this.rgrowth = Math.ceil(Math.random()*10);
-        this.cangrow = 1; // crece?
-
-        //var c3 = [0.4,0.3,0.2];
-        //c1 = c2 = c3;
-        var cf = [];
-        var c = Math.random();
-        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
-        this.r = cf[0] + c*varcolor;
-        this.g = cf[1] + c*varcolor;
-        this.b = cf[2] + c*varcolor;
-        this.maxX = this.minX = x;
-        this.maxY = this.minY = y;
-        this.orient = Math.ceil(Math.random()*2)
+        //this.orient = Math.ceil(Math.random()*2)
     }
 
     function s(p1,p2) {
@@ -295,20 +296,24 @@
 
     // agregar un punto a una particula
     particle.prototype.add = function(x,y) { 
-        this.a[this.a.length] = new point(x,y,this.i); 
+        var r = this.r;
+        var g = this.g;
+        var b = this.b;
+
+        this.a[this.a.length] = new point(x,y,this.i,r,g,b); 
         if(x < this.minX) this.minX = x;
         if(x > this.maxX) this.maxY = x;
         if(y < this.minY) this.minY = y;
         if(y > this.maxY) this.maxY = y;
 
-        var p1 = new point(x-1,y+1,-1);
-        var p2 = new point(x,y+1,-1);
-        var p3 = new point(x+1,y+1,-1);
-        var p4 = new point(x-1,y,-1);
-        var p5 = new point(x+1,y,-1);
-        var p6 = new point(x-1,y-1,-1);
-        var p7 = new point(x,y-1,-1);
-        var p8 = new point(x+1,y-1,-1);
+        var p1 = new point(x-1,y+1,-1,r,g,b);
+        var p2 = new point(x,y+1,-1,r,g,b);
+        var p3 = new point(x+1,y+1,-1,r,g,b);
+        var p4 = new point(x-1,y,-1,r,g,b);
+        var p5 = new point(x+1,y,-1,r,g,b);
+        var p6 = new point(x-1,y-1,-1,r,g,b);
+        var p7 = new point(x,y-1,-1,r,g,b);
+        var p8 = new point(x+1,y-1,-1,r,g,b);
 
         var p1c = p1.x+p1.y*maxcoord;
         var p2c = p2.x+p2.y*maxcoord;
@@ -349,7 +354,7 @@
         if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
             this.contorno = this.contorno.concat(p8);
 
-	    occupied[x+y*maxcoord].o = 1;
+	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);;
 
         if(this.contorno.length == 0 ) this.cangrow = 0;
 
@@ -608,7 +613,7 @@
         occupied = [];
         for(var i = 0; i < maxcoord; i++)
             for(var j = 0; j < maxcoord; j++)
-                occupied[i+j*maxcoord] = new point(i,j,-1);
+                occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0);
 
         init_particles();
 
@@ -644,7 +649,7 @@
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
-            <td>R</td><td>G</td><td>B</td><td>Porcentaje</td><td>Direcci&oacute;n</td>
+            <td>R</td><td>G</td><td>B</td><td>Porcentaje</td>
             </th>
             <tr>
                    <td><b>Posici&oacute;n de la Luz</b></td>
@@ -654,11 +659,22 @@
             </tr>
             <tr>
                    <td><b>Color 1</b></td>
-                   <td><input id="c1r" type="text" value="0.3" size=5 /></td>
-                   <td><input id="c1g" type="text" value="0.2" size=5 /></td>
-                   <td><input id="c1b" type="text" value="0.1" size=5 /></td>
+                   <td><input id="c1r" type="text" value="211" size=5 /></td>
+                   <td><input id="c1g" type="text" value="175" size=5 /></td>
+                   <td><input id="c1b" type="text" value="101" size=5 /></td>
                    <td><input id="c1p" type="text" value="50" size=5 /></td>
-                   <td><select id="sel1"  value="50" >
+            </tr>
+            <tr>
+                   <td><b>Color 2</b></td>
+                   <td><input id="c2r" type="text" value="158" size=5 /></td>
+                   <td><input id="c2g" type="text" value="101" size=5 /></td>
+                   <td><input id="c2b" type="text" value="14" size=5 /></td>
+                    <td></td>
+            </tr>
+        </table>
+        <table>
+
+            <tr> <td> <b>Direcci&oacute;n</b><select id="sel1"  value="50" >
                         <option value ="0">Random</option>
                         <option value ="1">Diagonal</option>
                         <option value ="2">Vertical</option>
@@ -666,17 +682,6 @@
                     </select>
                    </td>
             </tr>
-            <tr>
-                   <td><b>Color 2</b></td>
-                   <td><input id="c2r" type="text" value="0.3" size=5 /></td>
-                   <td><input id="c2g" type="text" value="0.1" size=5 /></td>
-                   <td><input id="c2b" type="text" value="0.2" size=5 /></td>
-                    <td></td>
-                    <td></td>
-
-            </tr>
-        </table>
-        <table>
             <tr>
                   <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5" size=3 /></td> 
             </tr>
