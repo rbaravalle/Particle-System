@@ -514,13 +514,12 @@
                 parseFloat(document.getElementById("lightPositionZ").value)
             );
 
-
+            var cant = 0, j = 0;
             vertices = [];
             colors = [];
             normals = [];
 
-            var cant = 0;
-            for (var j = 0; j < maxcoord2 ; j++) {
+            while(true) {
                  var p = occupied[j];
                  if(p && p.o) {
                      vertices = vertices.concat(p.x*0.01,p.y*0.01,0.0);
@@ -529,28 +528,40 @@
                      normals = normals.concat(0.0,0.0,1.0);
                      cant++;
                 }
+                j++;
+                if(cant > maxcoord*0.01 || j >= maxcoord2) {
+                    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                    triangleVertexPositionBuffer.itemSize = 3;
+                    triangleVertexPositionBuffer.numItems = cant;
+                    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+                   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+                    triangleVertexColorBuffer.itemSize = 4;
+                   	triangleVertexColorBuffer.numItems = cant;
+                    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
+                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+                    sceneVertexNormalBuffer.itemSize = 3;
+                    sceneVertexNormalBuffer.numItems = cant;
+                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+                    gl.drawArrays(gl.POINTS, 0, cant);
+
+                    if(j>= maxcoord2) break;
+
+                    cant = 0;
+                    vertices = [];
+                    colors = [];
+                    normals = [];
+
+                }
 	        }
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-            triangleVertexPositionBuffer.itemSize = 3;
-            triangleVertexPositionBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-           	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-            triangleVertexColorBuffer.itemSize = 4;
-           	triangleVertexColorBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-            sceneVertexNormalBuffer.itemSize = 3;
-            sceneVertexNormalBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-
-            gl.drawArrays(gl.POINTS, 0, cant);
+        
 
         $('iteracion').innerHTML = it+1;
         $('contorno').innerHTML = largoCont;
@@ -643,13 +654,13 @@
                   <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5" size=3 /></td> 
             </tr>
             <tr>
-                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="5000" size=5 /></td>
+                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="500" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="1000" size=5 /></td>
+                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="100" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.1" size=5 /></td>
