@@ -314,9 +314,7 @@
         if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
             this.contorno = this.contorno.concat(p8);
 
-	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);;
-
-        if(this.contorno.length == 0 ) this.cangrow = 0;
+	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);
 
         //this.a = this.a.sort(s);
     };
@@ -399,6 +397,17 @@
                 c = (c+1)%(this.contorno.length-1);
             }
       }
+
+      for(var i = 0; i < this.contorno.length; i++) {
+            var cont = this.contorno[i];
+            var actual = cont.x+cont.y*maxcoord;
+            if(occupied[actual].o == 1) {
+                this.contorno[i] = undefined;
+            }
+      }
+      this.contorno = this.contorno.compact();
+      if(this.contorno.length == 0 ) this.cangrow = 0;
+
     };
 
     function esta (a,x,y) {
@@ -452,9 +461,10 @@
 
         largoCont = 0;
         for(var i = 0; i < particles.length; i++) {
-           if(particles[i].cangrow && particles[i].a.length < maxSize)
-               particles[i].grow(); // simulacion de crecimiento de la burbuja
-           largoCont += particles[i].contorno.length;
+           var pi = particles[i];
+           if(pi.cangrow && pi.a.length < maxSize)
+               pi.grow(); // simulacion de crecimiento de la burbuja
+           largoCont += pi.contorno.length;
         };
 
         /*for(var i = 0; i < particles.length; i++) {
