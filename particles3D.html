@@ -199,6 +199,8 @@
         this.b = b || 0;
     }
 
+    var max_it_cambio = 100; // cada cuantas iteraciones cambia la direccion
+
     // cada particula cuenta con multiples puntos
     function particle(x,y,i) {
 
@@ -206,20 +208,23 @@
         var c = Math.random();
         if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
         var d = 0.003921569; // 1/255
-        this.r = cf[0]*d + c*varcolor;
-        this.g = cf[1]*d + c*varcolor;
-        this.b = cf[2]*d + c*varcolor;
-
-        //var p = new point(x,y,i,r,g,b);
+        this.r =  cf[0]*d + c*varcolor; // Math.ceil(Math.random()*255)*d
+        this.g =  cf[1]*d + c*varcolor; // Math.ceil(Math.random()*255)*d
+        this.b =  cf[2]*d + c*varcolor; // Math.ceil(Math.random()*255)*d
 
         this.i = i;
 
         this.a = [];
         this.contorno = [];
 
+        this.vy = -1;
+        this.vx = 1;
+        this.dir = 3;
+
+
         // direccion de crecimiento
 
-        if($('sel1').value == 0) {
+        /*if($('sel1').value == 0) {
             this.vx = 0;
             this.vy = 0;
         }
@@ -234,9 +239,16 @@
         if($('sel1').value == 3) {
             this.vx = 1;
             this.vy = 0;    
-        }
-        this.rgrowth = Math.ceil(Math.random()*10);
+        }*/
+        this.rgrowth = Math.ceil(Math.random()*2);
         this.cangrow = 1; // crece?
+        /*if(Math.random() < 0.9)
+            this.cambiaDir = 0;
+        else this.cambiaDir = 1;*/
+
+        this.cambiaDir = 1;
+
+
 
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
@@ -259,6 +271,8 @@
         var r = this.r;
         var g = this.g;
         var b = this.b;
+
+
 
         this.a[this.a.length] = new point(x,y,this.i,r,g,b); 
         if(x < this.minX) this.minX = x;
@@ -284,34 +298,88 @@
         var p7c = p7.x+p7.y*maxcoord;
         var p8c = p8.x+p8.y*maxcoord;
 
-        if($('sel1').value == 0) {
-            p1c = p3c = p6c = p8c = 0;
+
+        var dir = this.dir;
+        if(dir == 0) { // random
+            this.vx = 0;
+            this.vy = 0;
+            p1c = p3c = p6c = p8c = -1;
+        }
+        if(dir == 1) { // diagonal
+            this.vx = 1;
+            this.vy = 1;
+            p1c = p4c = p6c = p7c = p8c = -1;
+        }
+        if(dir == 8) { // vertical
+            this.vx = 0;
+            this.vy = 1;
+            p4c = p5c = p6c = p7c = p8c = -1;
+        }
+        if(dir == 2) { // horizontal
+            this.vx = 1;
+            this.vy = 0;
+            p1c = p2c = p4c = p6c = p7c = -1;
+        }
+        if(dir == 3) { // diagonal hacia abajo
+            this.vx = 1;
+            this.vy = -1;
+            p1c = p2c = p3c = p4c = p6c = -1;
+        }
+        if(dir == 4) { // vertical hacia abajo
+            this.vx = 0;
+            this.vy = -1;
+            p1c = p2c = p3c = p4c = p5c = -1;
+        }
+        if(dir == 6) { // horizontal izquierda
+            this.vx = -1;
+            this.vy = 0;
+            p2c = p3c = p5c = p7c = p8c = -1;
+        }
+        if(dir == 5) { // diagonal abajo izquierda
+            this.vx = -1;
+            this.vy = -1;
+            p1c = p2c = p3c = p5c = p8c = -1;
+        }
+        if(dir == 7) { // diagonal arriba izquierda
+            this.vx = -1;
+            this.vy = 1;
+            p3c = p5c = p6c = p7c = p8c = -1;
+        }
+        /*if($('sel1').value == 0) {
+            this.vx = 0;
+            this.vy = 0;
         }
         if($('sel1').value == 1) {
-            p1c = p4c = p6c = p7c = p8c = 0;
+            this.vx = 1;
+            this.vy = 1;
         }
         if($('sel1').value == 2) {
-            p4c = p5c = p6c = p7c = p8c = 0;
+            this.vx = 0;
+            this.vy = 1;
         }
         if($('sel1').value == 3) {
-            p1c = p2c = p4c = p6c = p7c = 0;
-        }
+            this.vx = 1;
+            this.vy = 0;    
+        }*/
 
-        if(p1c > 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno))
+
+
+
+        if(p1c >= 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno))
             this.contorno = this.contorno.concat(p1);
-        if(p2c > 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno))
+        if(p2c >= 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno))
             this.contorno = this.contorno.concat(p2);
-        if(p3c > 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno))
+        if(p3c >= 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno))
             this.contorno = this.contorno.concat(p3); 
-        if(p4c > 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno))
+        if(p4c >= 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno))
             this.contorno = this.contorno.concat(p4);
-        if(p5c > 0 && p5c < maxcoord2 && occupied[p5c].o == 0 && !esta(p5,this.contorno))
+        if(p5c >= 0 && p5c < maxcoord2 && occupied[p5c].o == 0 && !esta(p5,this.contorno))
             this.contorno = this.contorno.concat(p5);
-        if(p6c > 0 && p6c < maxcoord2 && occupied[p6c].o == 0 && !esta(p6,this.contorno))
+        if(p6c >= 0 && p6c < maxcoord2 && occupied[p6c].o == 0 && !esta(p6,this.contorno))
             this.contorno = this.contorno.concat(p6);
-        if(p7c > 0 && p7c < maxcoord2 && occupied[p7c].o == 0 && !esta(p7,this.contorno))
+        if(p7c >= 0 && p7c < maxcoord2 && occupied[p7c].o == 0 && !esta(p7,this.contorno))
             this.contorno = this.contorno.concat(p7);
-        if(p8c > 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
+        if(p8c >= 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
             this.contorno = this.contorno.concat(p8);
 
 	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);
@@ -360,21 +428,46 @@
     particle.prototype.grow = function() {
       var fin = false;
       var l = this.contorno.length;
-      var maxim = l/this.rgrowth;
+      var maxim = (l/64)/this.rgrowth;
+
+        // cambio de direccion
+      if(this.cambiaDir==1 && t!= 0 && t%max_it_cambio == 0) {
+        this.dir = Math.ceil(Math.random()*9);//(this.dir+1)%7;
+        var r = Math.random();
+        if(r < 0.3){ this.dir = 3; }
+        else { if(r < 0.6) this.dir = 3; else this.dir = 0; }
+      }
 
       for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
-            var ultPart = this.a[this.a.length-1];
+           
 
-            // proxima particula, tiene en cuenta la direccion de crecimiento
-            var c;
-            if(this.vx == 0 && this.vy == 0) {
-                c = Math.ceil(Math.random()*(this.contorno.length-1));
+            var resta;
+            if(this.dir == 1 || this.dir == 2 || this.dir == 4 || this.dir == 5
+                || this.dir == 6 || this.dir == 8) resta = 1;
+            if(this.dir == 3 ) resta = 0;
+            if(this.dir == 7 ) resta = 2;
+
+
+            c = this.contorno.length-1 - resta;
+
+            if(this.dir == 0) {
+
+                var ultPart = this.a[this.a.length-1];
+
+                var c;
+                if(this.vx == 0 && this.vy == 0) {
+                    c = Math.ceil(Math.random()*(this.contorno.length-1));
+                }
+                else {
+                    var nextPartX = ultPart.x+this.vx;
+                    var nextPartY = ultPart.y+this.vy;
+                    c = this.buscarEnContorno(nextPartX,nextPartY);
+                }
+
             }
-            else {
-                var nextPartX = ultPart.x+this.vx;
-                var nextPartY = ultPart.y+this.vy;
-                c = this.buscarEnContorno(nextPartX,nextPartY);
-            }
+
+            if(!this.contorno[c]) { c = this.contorno.length-1; }
+            
 
             
             for(var h = 0; h < this.contorno.length; h++)
@@ -494,7 +587,7 @@
 
         mover();
         for(var it = 0; it < TIEMPO-1 ; it++) {
-            if(largoCont > 0) mover(); else break;
+            if(largoCont > 0) { t++; mover(); } else break;
         }
 
             gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
@@ -529,7 +622,7 @@
             colors = [];
             normals = [];
 
-            while(true) {
+            while(j< maxcoord2) {
                  var p = occupied[j];
                  if(p && p.o) {
                      vertices = vertices.concat(p.x*0.01,p.y*0.01,0.0);
@@ -539,7 +632,7 @@
                      cant++;
                 }
                 j++;
-                if(cant > maxcoord*0.01 || j >= maxcoord2) {
+                if(cant > 1/*maxcoord*0.01*/ || j >= maxcoord2) {
                     gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
                     triangleVertexPositionBuffer.itemSize = 3;
@@ -560,8 +653,6 @@
 
 
                     gl.drawArrays(gl.POINTS, 0, cant);
-
-                    if(j>= maxcoord2) break;
 
                     cant = 0;
                     vertices = [];
@@ -661,16 +752,16 @@
                    </td>
             </tr>
             <tr>
-                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5" size=3 /></td> 
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="500" size=3 /></td> 
             </tr>
             <tr>
-                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="500" size=5 /></td>
+                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="1" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="100" size=5 /></td>
+                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="1000" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.1" size=5 /></td>
