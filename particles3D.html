@@ -70,6 +70,8 @@
     var CANT_PARTICLES;
     var CANT_NEW_PARTICLES;
 
+    var RANDOM = 0;
+
     var TIEMPO;
     var maxSize;
 
@@ -199,7 +201,7 @@
         this.b = b || 0;
     }
 
-    var max_it_cambio = 100; // cada cuantas iteraciones cambia la direccion
+    var max_it_cambio = 20; // cada cuantas iteraciones cambia la direccion
 
     // cada particula cuenta con multiples puntos
     function particle(x,y,i) {
@@ -217,29 +219,16 @@
         this.a = [];
         this.contorno = [];
 
-        this.vy = 0;
-        this.vx = 0;
-        this.dir = 0;
+        var checks = document.getElementsByName('dir');
+
+        for(var ai = 0; ai < checks.length; ai++)
+            if(checks[ai].checked) { d = checks[ai].value; break; }
+
+        this.vy = -1;
+        this.vx = -1;
+        this.dir = stringToDir(d);
 
 
-        // direccion de crecimiento
-
-        /*if($('sel1').value == 0) {
-            this.vx = 0;
-            this.vy = 0;
-        }
-        if($('sel1').value == 1) {
-            this.vx = 1;
-            this.vy = 1;
-        }
-        if($('sel1').value == 2) {
-            this.vx = 0;
-            this.vy = 1;
-        }
-        if($('sel1').value == 3) {
-            this.vx = 1;
-            this.vy = 0;    
-        }*/
         this.rgrowth = Math.ceil(Math.random()*2);
         this.cangrow = 1; // crece?
         /*if(Math.random() < 0.9)
@@ -300,7 +289,7 @@
 
 
         var dir = this.dir;
-        if(dir == 0) { // random
+        if(dir == RANDOM) { // random
             this.vx = 0;
             this.vy = 0;
             p1c = p3c = p6c = p8c = -1;
@@ -345,22 +334,6 @@
             this.vy = 1;
             p3c = p5c = p6c = p7c = p8c = -1;
         }
-        /*if($('sel1').value == 0) {
-            this.vx = 0;
-            this.vy = 0;
-        }
-        if($('sel1').value == 1) {
-            this.vx = 1;
-            this.vy = 1;
-        }
-        if($('sel1').value == 2) {
-            this.vx = 0;
-            this.vy = 1;
-        }
-        if($('sel1').value == 3) {
-            this.vx = 1;
-            this.vy = 0;    
-        }*/
 
 
 
@@ -383,8 +356,6 @@
             this.contorno.push(p8);
 
 	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);
-
-        //this.a = this.a.sort(s);
     };
 
     // funcion que determina si dos particulas se intersectan
@@ -425,6 +396,14 @@
         return 0; // no esta en el contorno, crece arbitrariamente
     };
 
+    function stringToDir(s) {
+        if(s == "random") return RANDOM;
+        if(s == "diag1") return 3;
+        if(s == "diag2") return 1;
+        if(s == "vertical") return 8;
+        if(s == "horizontal") return 6;
+    }
+
     particle.prototype.grow = function() {
       var fin = false;
       var l = this.contorno.length;
@@ -434,11 +413,25 @@
       if(this.cambiaDir==1 && t!= 0 && t%max_it_cambio == 0) {
         this.dir = Math.ceil(Math.random()*9);//(this.dir+1)%7;
         var r = Math.random();
-        if(r < 0.3){ this.dir = 0; }
-        else { if(r < 0.6) this.dir = 3; else this.dir = 1; }
+
+        // cantidad de direcciones sobre las que pueden crecer las particulas
+        var checks = document.getElementsByName('dir');
+        var cantChecked = 0;
+        var inds = [];
+        for(var ai = 0; ai < checks.length; ai++)
+            if(checks[ai].checked) { cantChecked++; inds.push(ai); }
+
+        var step = 1/cantChecked;
+
+        var actual = 0;
+        if(r <= step) this.dir = stringToDir(checks[inds[0]].value);
+        if(r > step && r < 2*step ) this.dir = stringToDir(checks[inds[1]].value); 
+        if(r > 2*step && r < 3*step) this.dir = stringToDir(checks[inds[2]].value);
+        if(r > 3*step && r < 4*step) this.dir = stringToDir(checks[inds[3]].value); 
+        if(r > 4*step && r < 5*step) this.dir = stringToDir(checks[inds[4]].value); 
       }
 
-      for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agrega a la particula
+      for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agregan a la particula
            
 
             var resta;
@@ -623,19 +616,19 @@
                     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
                     triangleVertexPositionBuffer.itemSize = 3;
                     triangleVertexPositionBuffer.numItems = cant;
-                    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 
                     gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
                    	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
                     triangleVertexColorBuffer.itemSize = 4;
                    	triangleVertexColorBuffer.numItems = cant;
-                    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
                     gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
                     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
                     sceneVertexNormalBuffer.itemSize = 3;
                     sceneVertexNormalBuffer.numItems = cant;
-                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, sceneVertexNormalBuffer.itemSize, gl.FLOAT, false, 0, 0);
+                    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
 
 
                     gl.drawArrays(gl.POINTS, 0, cant);
@@ -707,6 +700,7 @@
    <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
 
    <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
+        <input type = "button" value = "Render!" style="width:300;height=600;" onclick="init_variables(); drawScene();" />
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
@@ -737,15 +731,14 @@
             </tr>
         </table>
         <table>
-
-            <tr> <td> <b>Direcci&oacute;n</b><select id="sel1"  value="50" >
-                        <option value ="0">Random</option>
-                        <option value ="1">Diagonal</option>
-                        <option value ="2">Vertical</option>
-                        <option value ="3">Horizontal</option>
-                    </select>
-                   </td>
-            </tr>
+            <tr><b>Crecimiento De las Part&iacute;culas</b>
+            <tr><td>Random<input name="dir" value="random" type="checkbox" checked /></td></tr>
+            <tr><td>Diagonal 1<input name="dir" value="diag1" type="checkbox"  /></td></tr>
+            <tr><td>Diagonal 2<input name="dir" value="diag2" type="checkbox"  /></td></tr>
+            <tr><td>Vertical<input name="dir" value="vertical" type="checkbox"  /></td></tr>
+            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" /></td></tr>
+        </table>
+        <table>
             <tr>
                   <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="500" size=3 /></td> 
             </tr>
@@ -765,7 +758,7 @@
                   <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.1" size=5 /></td>
             </tr>
         </table>
-        <input type = "button" value = "Render!" onclick="init_variables(); drawScene();" />
+       
     </div>
 </body>
 
