@@ -17,6 +17,10 @@ i<html>
     varying vec4 vColor;
     varying vec4 vPosition;
     varying vec3 vTransformedNormal;
+    varying vec2 vTextureCoord;
+    uniform bool uUseTextures;
+
+    uniform sampler2D uSampler;
  
     void main(void) {
         vec3 lightDirection = normalize(uPointLightingLocation - vPosition.xyz);
@@ -29,7 +33,7 @@ i<html>
         float NH = dot(normal,halfv);
 
 
-        float uMaterialShininess = 64.0;
+        float uMaterialShininess = 32.0;
         float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 
@@ -37,8 +41,17 @@ i<html>
         vec3 diffuse = vec3(0.8,0.8,0.8) * diffuseLightWeighting;
         spec += diffuse + vec3(0.2,0.2,0.2);
 
-        gl_FragColor = vec4(vColor.rgb * spec,vColor.a);
-        //gl_FragColor = vColor;
+        vec4 texColor;
+        if(uUseTextures) {
+            texColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        }
+        else {
+            texColor = vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
+        }
+        gl_FragColor = texColor;
+        //gl_FragColor = vec4(vColor.rgb * spec,vColor.a);
+        //gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+
     }
 </script> 
  
@@ -46,6 +59,7 @@ i<html>
     attribute vec3 aVertexPosition;
     attribute vec4 aVertexColor;
     attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
  
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
@@ -54,6 +68,7 @@ i<html>
     varying vec4 vColor;
     varying vec4 vPosition;
     varying vec3 vTransformedNormal;
+    varying vec2 vTextureCoord;
  
     void main(void) {
         vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
@@ -61,6 +76,7 @@ i<html>
         vec3 normal = normalize(vTransformedNormal);
         vTransformedNormal = uNMatrix * aVertexNormal;
         vColor = aVertexColor;
+        vTextureCoord = aTextureCoord;
     }
 </script> 
 
@@ -75,7 +91,7 @@ i<html>
     var TIEMPO;
     var maxSize;
 
-    var maxcoord = 400;
+    var maxcoord = 512;
     var maxcoord2 = maxcoord*maxcoord;
     var largoCont;
     var varcolor;
@@ -87,6 +103,9 @@ i<html>
     var t = 0;
     var particles;
     var max_it_cambio;
+
+    var rttFramebuffer;
+    var rttTexture;
 
     var gl;
     function initGL(canvas) {
@@ -169,8 +188,41 @@ i<html>
 
         shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
         shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+        shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
+        shaderProgram.useTexturesUniform = gl.getUniformLocation(shaderProgram, "uUseTextures");
+
+        shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+        gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
+        /*gl.bindBuffer(gl.ARRAY_BUFFER, laptopScreenVertexTextureCoordBuffer);
+        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, tCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);*/
+
+
 
     }
+
+    function handleLoadedTexture(texture) {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    var neheTexture;
+    var cubeVertexTextureCoordBuffer;
+    var cubeVertexPositionBuffer;
+ 
+    function initTexture() {
+        neheTexture = gl.createTexture();
+        neheTexture.image = new Image();
+        neheTexture.image.onload = function () {
+            handleLoadedTexture(neheTexture)
+        }
+ 
+        neheTexture.image.src = "nehe.gif";
+    }
+ 
 
 
     var mvMatrix = mat4.create();
@@ -190,6 +242,9 @@ i<html>
 
     var triangleVertexPositionBuffer;
     var triangleVertexColorBuffer;
+    var cubeVertexIndexBuffer;
+    var sceneVertexNormalBuffer;
+
 
 
      function point(x,y,i,r,g,b) {
@@ -206,12 +261,12 @@ i<html>
     function particle(x,y,i) {
 
         var cf = [];
-        var c = Math.random();
+        var c = Math.random()*2-1;
         if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
         var d = 0.003921569; // 1/255
-        this.r =  cf[0]*d + c*varcolor; // Math.ceil(Math.random()*255)*d
-        this.g =  cf[1]*d + c*varcolor; // Math.ceil(Math.random()*255)*d
-        this.b =  cf[2]*d + c*varcolor; // Math.ceil(Math.random()*255)*d
+        this.r =  cf[0]*d + c*varcolor;
+        this.g =  cf[1]*d + c*varcolor;
+        this.b =  cf[2]*d + c*varcolor;
 
         this.i = i;
 
@@ -458,10 +513,9 @@ i<html>
            
 
             var resta;
-            if(this.dir == 1 || this.dir == 2 || this.dir == 4 || this.dir == 5
-                || this.dir == 6 || this.dir == 8) resta = 1;
             if(this.dir == 3 ) resta = 0;
             if(this.dir == 7 ) resta = 2;
+            if(this.dir != 3 && this.dir != 7) resta = 1;
 
 
             c = this.contorno.length-1 - resta;
@@ -558,7 +612,7 @@ i<html>
         for(var i = 0; i < particles.length; i++) {
            var pi = particles[i];
            if(pi.cangrow && pi.a.length < maxSize)
-               pi.grow(); // simulacion de crecimiento de la burbuja
+               pi.grow(); // crecimiento de la particula
            largoCont += pi.contorno.length;
         };
 
@@ -592,6 +646,10 @@ i<html>
             if(largoCont > 0) { t++; mover(); } else break;
         }
 
+        // dibujamos en este buffer
+        gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+
+        // mi escena
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -605,6 +663,8 @@ i<html>
         var colors = [];
         var normals = [];
         var cant = 0;
+
+        gl.uniform1i(shaderProgram.useTexturesUniform, false);
 
         setMatrixUniforms();
         triangleVertexPositionBuffer = gl.createBuffer();
@@ -624,6 +684,14 @@ i<html>
         colors = [];
         normals = [];
 
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, cubeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, neheTexture);
+        gl.uniform1i(shaderProgram.samplerUniform, 0);
+
+
         while(j< maxcoord2) {
              var p = occupied[j];
              if(p && p.o) {
@@ -634,7 +702,7 @@ i<html>
                  cant++;
             }
             j++;
-            if(cant > 1/*maxcoord*0.01*/ || j >= maxcoord2) {
+            if(cant > 1 || j >= maxcoord2) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
                 triangleVertexPositionBuffer.itemSize = 3;
@@ -653,7 +721,6 @@ i<html>
                 sceneVertexNormalBuffer.numItems = cant;
                 gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
 
-
                 gl.drawArrays(gl.POINTS, 0, cant);
 
                 cant = 0;
@@ -663,7 +730,79 @@ i<html>
 
             }
         }
-        
+
+        // dibuja eso en esta textura
+        gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);      
+
+
+        // ahora dibuja la escena
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+        mat4.identity(mvMatrix);
+
+        mat4.translate(mvMatrix, [0.0, 0.0, -6.0]);
+
+        setMatrixUniforms();
+
+        gl.uniform3f(
+            shaderProgram.pointLightingLocationUniform,
+            parseFloat(document.getElementById("lightPositionX").value),
+            parseFloat(document.getElementById("lightPositionY").value),
+            parseFloat(document.getElementById("lightPositionZ").value)
+        );
+
+        gl.uniform1i(shaderProgram.useTexturesUniform, true);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+         
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, cubeVertexTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+        var colors = [
+             0.000000, 0.000000, 1.000000, 0.000000,
+             0.000000, 0.000000, 1.000000,0.000000,
+             0.000000, 0.000000, 1.000000,0.000000,
+             0.000000, 0.000000, 1.000000,0.000000,
+        ];
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        triangleVertexColorBuffer.itemSize = 4;
+       	triangleVertexColorBuffer.numItems = colors.length;
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
+
+        sceneVertexNormalBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
+        var vertexNormals = [
+             0.000000, 0.000000, 1.000000,
+             0.000000, 0.000000, 1.000000,
+             0.000000, 0.000000, 1.000000,
+             0.000000, 0.000000, 1.000000,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexNormals), gl.STATIC_DRAW);
+        sceneVertexNormalBuffer.itemSize = 3;
+        sceneVertexNormalBuffer.numItems = 4;
+
+        gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+        gl.uniform1i(shaderProgram.samplerUniform, 0);
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+        gl.drawElements(gl.TRIANGLE_STRIP, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+
+
 
         $('iteracion').innerHTML = it+1;
         $('contorno').innerHTML = largoCont;
@@ -701,10 +840,78 @@ i<html>
 
     }
 
+    function initBuffers() {
+        cubeVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+        vertices = [
+            // Front face
+            -1.0, -1.0,  1.0,
+             1.0, -1.0,  1.0,
+             1.0,  1.0,  1.0,
+            -1.0,  1.0,  1.0, 
+           
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        cubeVertexPositionBuffer.itemSize = 3;
+        cubeVertexPositionBuffer.numItems = 4;
+ 
+        cubeVertexTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexTextureCoordBuffer);
+        var textureCoords = [
+          // Front face
+          0.0, 0.0,
+          1.0, 0.0,
+          1.0, 1.0,
+          0.0, 1.0, 
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
+        cubeVertexTextureCoordBuffer.itemSize = 2;
+        cubeVertexTextureCoordBuffer.numItems = 4;
+
+        cubeVertexIndexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+        var cubeVertexIndices = [
+            0, 1, 2,      0, 2, 3,    // Front face
+        ];
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+        cubeVertexIndexBuffer.itemSize = 1;
+        cubeVertexIndexBuffer.numItems = 6;
+
+    }
+
+    function initTextureFramebuffer() {
+        rttFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+        rttFramebuffer.width = 512;
+        rttFramebuffer.height = 512;
+
+        rttTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+        gl.generateMipmap(gl.TEXTURE_2D);
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rttFramebuffer.width, rttFramebuffer.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+        var renderbuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, rttFramebuffer.width, rttFramebuffer.height);
+
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rttTexture, 0);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
     function webGLStart() {
         var canvas = document.getElementById("lesson01-canvas");
         initGL(canvas);
+        initTextureFramebuffer();
         initShaders();
+        initBuffers();
+        initTexture();
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
