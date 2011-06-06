@@ -654,7 +654,7 @@ i<html>
         gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 
         // mi escena
-        gl.viewport(0, 0, maxcoord, maxcoord);
+        gl.viewport(0, 0, maxcoord+3, maxcoord+3);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
@@ -662,7 +662,7 @@ i<html>
 
         mat4.identity(mvMatrix);
 
-        mat4.translate(mvMatrix, [-0.5, -0.5, -1.21]);
+        mat4.translate(mvMatrix, [-0.5, -0.5, -1.22]);
 
         var vertices = [];
         var colors = [];
