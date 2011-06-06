@@ -203,10 +203,6 @@ i<html>
 
         shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
         gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
-        /*gl.bindBuffer(gl.ARRAY_BUFFER, laptopScreenVertexTextureCoordBuffer);
-        gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, tCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);*/
-
-
 
     }
 
@@ -658,10 +654,11 @@ i<html>
         gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 
         // mi escena
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.viewport(0, 0, maxcoord, maxcoord);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+        //mat4.ortho(0,0,maxcoord,maxcoord,0.1,100.0,pMatrix);
 
         mat4.identity(mvMatrix);
 
@@ -706,7 +703,7 @@ i<html>
         while(j< maxcoord2) {
              var p = occupied[j];
              if(p && p.o) {
-                 vertices.push(p.x/maxcoord,p.y/maxcoord,0.0);
+                 vertices.push(p.x/(maxcoord-2),p.y/(maxcoord-2),0.0);
                  var c = (Math.random()*2-1)*(varparticlecolor);
                  colors.push(p.r+c,p.g+c,p.b+c,1.0);
                  normals.push(0.0,0.0,1.0);
@@ -988,7 +985,7 @@ i<html>
             </th>
             <tr>
                    <td><b>Posici&oacute;n de la Luz</b></td>
-                   <td><input id="lightPositionX" type="text" value="-3.0" size=5 /></td>
+                   <td><input id="lightPositionX" type="text" value="0.0" size=5 /></td>
                    <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
                    <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
             </tr>
