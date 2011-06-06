@@ -34,7 +34,7 @@ i<html>
         float NH = dot(normal,halfv);
 
 
-        float uMaterialShininess = 32.0;
+        float uMaterialShininess = 16.0;
         float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 
@@ -117,10 +117,11 @@ i<html>
     var scenePositionBuffer;
     var sceneIndexBuffer;
 
-    var teapotAngle = 180;
+    //var teapotAngle = 180;
     var sceneAngle = 180;
     var lastTime = 0;
     var stop = 0; // se hizo click, recalcular textura
+    var animar = true; // frenar/continuar la animacion
 
     var gl;
     function initGL(canvas) {
@@ -262,11 +263,11 @@ i<html>
 
         var cf = [];
         var c = Math.random()*2-1;
-        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
+        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2; }
         var d = 0.003921569; // 1/255
-        this.r =  Math.random();//cf[0]*d + c*varcolor;
-        this.g =  Math.random();//cf[1]*d + c*varcolor;
-        this.b =  Math.random();//cf[2]*d + c*varcolor;
+        this.r =  cf[0]*d + c*varcolor;
+        this.g =  cf[1]*d + c*varcolor;
+        this.b =  cf[2]*d + c*varcolor;
 
         this.i = i;
 
@@ -468,7 +469,7 @@ i<html>
         this.dir = Math.ceil(Math.random()*9);
         var r = Math.random()*100;
 
-        // cantidad de direcciones sobre las que pueden crecer las particulas
+        // direcciones sobre las que pueden crecer las particulas
         var checks = document.getElementsByName('dir');
         // porcentajes para cada direccion
         var pdirs = document.getElementsByName('pdir');
@@ -481,8 +482,8 @@ i<html>
 
         var suma = parseFloat(pdirs[inds[0]].value);
         var fin = false;
-        if(inds[0]>=0 && r <= suma){
-            this.dir = stringToDir(checks[inds[0]].value);
+        this.dir = stringToDir(checks[inds[0]].value);
+        if( r <= suma){
             fin = true;
         }
         if(!fin && inds[1]>=0 && r > suma && r < suma+parseFloat(pdirs[inds[1]].value) ) {
@@ -844,8 +845,11 @@ i<html>
     function tick() {
         if(stop == 1) { makeTexture(); stop = 0;}
         requestAnimFrame(tick);
-        dibujarEscena();
-        animate();
+        if(!animar) return;
+        else {
+            dibujarEscena();
+            animate();
+        }
     }
 
 
@@ -1009,6 +1013,7 @@ i<html>
 
    <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
         <input type = "button" value = "Render!" style="width:300" onclick="stop = 1; tick();" />
+        <input type = "button" value = "Animar/Parar" style="width:300" onclick="if(animar== false) animar=true; else animar =false;" />
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
@@ -1042,14 +1047,14 @@ i<html>
             <tr><b>Crecimiento De las Part&iacute;culas</b>
             <tr><td>Random<input name="dir" value="random" type="checkbox" checked /></td>
                           <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
-            <tr><td>Diagonal 1<input name="dir" value="diag1" type="checkbox"  checked canti/></td>
-                          <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
+            <tr><td>Diagonal 1<input name="dir" value="diag1" type="checkbox"  /></td>
+                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
             <tr><td>Diagonal 2<input name="dir" value="diag2" type="checkbox"  /></td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
             <tr><td>Vertical<input name="dir" value="vertical" type="checkbox"  /></td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
-            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" /></td>
-                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
+            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" checked /></td>
+                          <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
         </table>
         <table>
             <tr>
