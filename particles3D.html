@@ -6,6 +6,7 @@ i<html>
 
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="prototype.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
 
 <script id="shader-fs" type="x-shader/x-fragment"> 
     #ifdef GL_ES
@@ -44,9 +45,10 @@ i<html>
         vec4 texColor;
         if(uUseTextures) {
             texColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+            texColor = vec4(texColor.rgb*spec, texColor.a);
         }
         else {
-            texColor = vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
+            texColor = vColor;//vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
         }
         gl_FragColor = texColor;
 
@@ -116,6 +118,9 @@ i<html>
     var sceneIndexBuffer;
 
     var teapotAngle = 180;
+    var sceneAngle = 180;
+    var lastTime = 0;
+    var stop = 0; // se hizo click, recalcular textura
 
     var gl;
     function initGL(canvas) {
@@ -259,9 +264,9 @@ i<html>
         var c = Math.random()*2-1;
         if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
         var d = 0.003921569; // 1/255
-        this.r =  cf[0]*d + c*varcolor;
-        this.g =  cf[1]*d + c*varcolor;
-        this.b =  cf[2]*d + c*varcolor;
+        this.r =  Math.random();//cf[0]*d + c*varcolor;
+        this.g =  Math.random();//cf[1]*d + c*varcolor;
+        this.b =  Math.random();//cf[2]*d + c*varcolor;
 
         this.i = i;
 
@@ -484,14 +489,14 @@ i<html>
             this.dir = stringToDir(checks[inds[1]].value); 
             fin = true;
         }
-        if(!fin) {
+        if(!fin && inds[1]>=0) {
             suma += parseFloat(pdirs[inds[1]].value);
         }
         if(!fin && inds[2]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[2]].value)) {
             this.dir = stringToDir(checks[inds[2]].value);
             fin = true;
         }
-        if(!fin) {
+        if(!fin && inds[2]>=0) {
             suma += parseFloat(pdirs[inds[2]].value);
         }
         if(!fin && inds[3]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[3]].value)) {
@@ -636,24 +641,12 @@ i<html>
         return degrees * Math.PI / 180;
     }
 
-
-    function drawScene() {
-
-        if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
-            alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inizializado");
-            return;
-        }
-
-
-        mover();
-        for(var it = 0; it < TIEMPO-1 ; it++) {
-            if(largoCont > 0) { t++; mover(); } else break;
-        }
+    function dibujarParticulas() {
 
         // dibujamos en este buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 
-        // mi escena
+        // comienzo de la escena
         gl.viewport(0, 0, maxcoord+3, maxcoord+3);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -745,9 +738,11 @@ i<html>
         gl.bindTexture(gl.TEXTURE_2D, null);      
 
 
-        // ahora dibuja la escena
+        // liberamos
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
 
+    function dibujarEscena() {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -756,8 +751,8 @@ i<html>
         mat4.identity(mvMatrix);
 
         mat4.translate(mvMatrix, [0.0, 0.0, -40.0]);
-        mat4.rotate(mvMatrix, degToRad(23.4), [1, 0, -1]);
-        mat4.rotate(mvMatrix, degToRad(teapotAngle), [0, 1, 0]);
+        mat4.rotate(mvMatrix, degToRad(10.4), [1, 0, -1]);
+        mat4.rotate(mvMatrix, degToRad(sceneAngle), [0, 1, 0]);
 
 
 
@@ -799,10 +794,30 @@ i<html>
         setMatrixUniforms();
         gl.drawElements(gl.TRIANGLES, sceneIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
 
+    }
+
+
+    function makeTexture() {
+
+
+        init_variables();
+
+        if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
+            alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inicializado");
+            return;
+        }
+
+
+        mover();
+        for(var it = 0; it < TIEMPO-1 ; it++) {
+            if(largoCont > 0) { t++; mover(); } else break;
+        }
 
 
         $('iteracion').innerHTML = it+1;
         $('contorno').innerHTML = largoCont;
+
+        dibujarParticulas();
 
         for(var i = 0; i < maxcoord2; i++)
             delete occupied[i];
@@ -814,6 +829,25 @@ i<html>
         }
 
     }
+
+    function animate() {
+        var timeNow = new Date().getTime();
+        if (lastTime != 0) {
+            var elapsed = timeNow - lastTime;
+
+            sceneAngle += 0.04 * elapsed;
+        }
+        lastTime = timeNow;
+    }
+
+
+    function tick() {
+        if(stop == 1) { makeTexture(); stop = 0;}
+        requestAnimFrame(tick);
+        dibujarEscena();
+        animate();
+    }
+
 
     function init_variables() {
         TIEMPO = $('tiempo').value;
@@ -916,31 +950,29 @@ i<html>
     }
 
     function handleLoadedTeapot(teapotData) {
-            sceneNormalBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, sceneNormalBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexNormals), gl.STATIC_DRAW);
-            sceneNormalBuffer.itemSize = 3;
-            sceneNormalBuffer.numItems = teapotData.vertexNormals.length / 3;
+        sceneNormalBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, sceneNormalBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexNormals), gl.STATIC_DRAW);
+        sceneNormalBuffer.itemSize = 3;
+        sceneNormalBuffer.numItems = teapotData.vertexNormals.length / 3;
 
-            sceneTextureCoordBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, sceneTextureCoordBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexTextureCoords), gl.STATIC_DRAW);
-            sceneTextureCoordBuffer.itemSize = 2;
-            sceneTextureCoordBuffer.numItems = teapotData.vertexTextureCoords.length / 2;
+        sceneTextureCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, sceneTextureCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexTextureCoords), gl.STATIC_DRAW);
+        sceneTextureCoordBuffer.itemSize = 2;
+        sceneTextureCoordBuffer.numItems = teapotData.vertexTextureCoords.length / 2;
 
-            scenePositionBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, scenePositionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexPositions), gl.STATIC_DRAW);
-            scenePositionBuffer.itemSize = 3;
-            scenePositionBuffer.numItems = teapotData.vertexPositions.length / 3;
+        scenePositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, scenePositionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexPositions), gl.STATIC_DRAW);
+        scenePositionBuffer.itemSize = 3;
+        scenePositionBuffer.numItems = teapotData.vertexPositions.length / 3;
 
-            sceneIndexBuffer = gl.createBuffer();
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sceneIndexBuffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(teapotData.indices), gl.STATIC_DRAW);
-            sceneIndexBuffer.itemSize = 1;
-            sceneIndexBuffer.numItems = teapotData.indices.length;
-
-            //document.getElementById("loadingtext").textContent = "";
+        sceneIndexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sceneIndexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(teapotData.indices), gl.STATIC_DRAW);
+        sceneIndexBuffer.itemSize = 1;
+        sceneIndexBuffer.numItems = teapotData.indices.length;
      }
 
     function loadTeapot() {
@@ -962,8 +994,10 @@ i<html>
         //initBuffers();
 
 
+
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
+
     }
 
 </script>
@@ -974,7 +1008,7 @@ i<html>
    <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
 
    <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
-        <input type = "button" value = "Render!" style="width:300" onclick="init_variables(); drawScene();" />
+        <input type = "button" value = "Render!" style="width:300" onclick="stop = 1; tick();" />
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
