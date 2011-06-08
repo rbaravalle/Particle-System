@@ -1,0 +1,871 @@
+i<html>
+
+<head>
+<title>Sistema de Part&iacute;culas</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="prototype.js"></script>
+
+<script id="shader-fs" type="x-shader/x-fragment"> 
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+ 
+    uniform vec3 uPointLightingLocation;
+
+    varying vec4 vColor;
+    varying vec4 vPosition;
+    varying vec3 vTransformedNormal;
+ 
+    void main(void) {
+        vec3 lightDirection = normalize(uPointLightingLocation - vPosition.xyz);
+        vec3 eyeDirection = normalize(-vPosition.xyz);
+        vec3 normal = normalize(vTransformedNormal);
+
+        vec3 reflectionDirection = reflect(-lightDirection, normal);
+        // halfway vector between L and V
+        vec3 halfv = normalize(eyeDirection + lightDirection);
+        float NH = dot(normal,halfv);
+
+
+        float uMaterialShininess = 64.0;
+        float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
+        float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
+
+        vec3 spec = vec3(0.8,0.8,0.8) * specularLightWeighting;
+        vec3 diffuse = vec3(0.8,0.8,0.8) * diffuseLightWeighting;
+        spec += diffuse + vec3(0.2,0.2,0.2);
+
+        gl_FragColor = vec4(vColor.rgb * spec,vColor.a);
+        //gl_FragColor = vColor;
+    }
+</script> 
+ 
+<script id="shader-vs" type="x-shader/x-vertex"> 
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+    attribute vec3 aVertexNormal;
+ 
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+ 
+    varying vec4 vColor;
+    varying vec4 vPosition;
+    varying vec3 vTransformedNormal;
+ 
+    void main(void) {
+        vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vec3 normal = normalize(vTransformedNormal);
+        vTransformedNormal = uNMatrix * aVertexNormal;
+        vColor = aVertexColor;
+    }
+</script> 
+
+
+
+<script type="text/javascript">
+
+    var CANT_PARTICLES;
+    var CANT_NEW_PARTICLES;
+
+    var RANDOM = 0;
+
+    var TIEMPO;
+    var maxSize;
+
+    var maxcoord = 400;
+    var maxcoord2 = maxcoord*maxcoord;
+    var largoCont;
+    var varcolor;
+    var varparticlecolor;
+    var c1, c2;
+
+    var occupied;
+
+    var t = 0;
+    var particles;
+    var max_it_cambio;
+
+    var gl;
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("Could not initialise WebGL, sorry :-(");
+        }
+    }
+
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+    	gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+        shaderProgram.vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+        gl.enableVertexAttribArray(shaderProgram.vertexNormalAttribute);
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+
+        shaderProgram.pointLightingLocationUniform = gl.getUniformLocation(shaderProgram, "uPointLightingLocation");
+        shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
+
+    }
+
+
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+
+    function setMatrixUniforms() {
+        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+
+        var normalMatrix = mat3.create();
+        mat4.toInverseMat3(mvMatrix, normalMatrix);
+        mat3.transpose(normalMatrix);
+        gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
+    }
+
+
+
+    var triangleVertexPositionBuffer;
+    var triangleVertexColorBuffer;
+
+
+     function point(x,y,i,r,g,b) {
+        this.x = x
+        this.y = y
+        this.particle = i
+        if(i >= 0) this.o = 1; else this.o = 0;
+        this.r = r || 0;
+        this.g = g || 0;
+        this.b = b || 0;
+    }
+
+    // cada particula cuenta con multiples puntos
+    function particle(x,y,i,tiempo, pr,pg,pb, dir,cambia) {
+
+        var cf = [];
+        var c = Math.random();
+        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
+        var d = 0.003921569; // 1/255
+        this.r =  pr || cf[0]*d; //+ c*varcolor; // Math.ceil(Math.random()*255)*d
+        this.g =  pg || cf[1]*d; //+ c*varcolor; // Math.ceil(Math.random()*255)*d
+        this.b =  pb || cf[2]*d; //+ c*varcolor; // Math.ceil(Math.random()*255)*d
+        this.r += c*varcolor;
+        this.g += c*varcolor;
+        this.b += c*varcolor;
+
+        this.i = i;
+
+        this.a = [];
+        this.contorno = [];
+
+        var checks = document.getElementsByName('dir');
+
+        for(var ai = 0; ai < checks.length; ai++)
+            if(checks[ai].checked) { d = checks[ai].value; break; }
+
+        this.vy = -1;
+        this.vx = -1;
+        if(dir >= 0)
+            this.dir = dir;
+        else this.dir = stringToDir(d);
+
+        this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
+        this.tActual = 0;
+
+        this.rgrowth = Math.ceil(Math.random()*2);
+        this.cangrow = 1; // crece?
+        /*if(Math.random() < 0.9)
+            this.cambiaDir = 0;
+        else this.cambiaDir = 1;*/
+
+        this.cambiaDir = cambia;
+
+
+
+        this.maxX = this.minX = x;
+        this.maxY = this.minY = y;
+
+        this.add(x,y,[this.r,this.g,this.b]);
+       
+    }
+
+    function s(p1,p2) {
+        if(p1.x == p2.x) {
+            if(p1.y < p2.y) return 1; else return -1;
+        }
+        else {
+            if(p1.x < p2.x) return 1; else return -1; 
+        }
+    }
+
+    function ocupada(i) {
+        return (occupied[i].o == 1 && particles[occupied[i].particle].cangrow == 1);
+    }
+
+    // agregar un punto a una particula
+    particle.prototype.add = function(x,y,col) { 
+        var r,g,b;
+
+        r = (this.r + col[0])/2;
+        g = (this.g + col[1])/2;
+        b = (this.b + col[2])/2;
+
+
+
+        this.a[this.a.length] = new point(x,y,this.i,r,g,b); 
+        if(x < this.minX) this.minX = x;
+        if(x > this.maxX) this.maxY = x;
+        if(y < this.minY) this.minY = y;
+        if(y > this.maxY) this.maxY = y;
+
+        var p1 = new point(x-1,y+1,-1,r,g,b);
+        var p2 = new point(x,y+1,-1,r,g,b);
+        var p3 = new point(x+1,y+1,-1,r,g,b);
+        var p4 = new point(x-1,y,-1,r,g,b);
+        var p5 = new point(x+1,y,-1,r,g,b);
+        var p6 = new point(x-1,y-1,-1,r,g,b);
+        var p7 = new point(x,y-1,-1,r,g,b);
+        var p8 = new point(x+1,y-1,-1,r,g,b);
+
+        var p1c = p1.x+p1.y*maxcoord;
+        var p2c = p2.x+p2.y*maxcoord;
+        var p3c = p3.x+p3.y*maxcoord;
+        var p4c = p4.x+p4.y*maxcoord;
+        var p5c = p5.x+p5.y*maxcoord;
+        var p6c = p6.x+p6.y*maxcoord;
+        var p7c = p7.x+p7.y*maxcoord;
+        var p8c = p8.x+p8.y*maxcoord;
+
+
+        var dir = this.dir;
+        if(dir == RANDOM) { // random
+            this.vx = 0;
+            this.vy = 0;
+            p1c = p3c = p6c = p8c = -1;
+        }
+        if(dir == 1) { // diagonal
+            this.vx = 1;
+            this.vy = 1;
+            p1c = p4c = p6c = p7c = p8c = -1;
+        }
+        if(dir == 8) { // vertical
+            this.vx = 0;
+            this.vy = 1;
+            p4c = p5c = p6c = p7c = p8c = -1;
+        }
+        if(dir == 2) { // horizontal
+            this.vx = 1;
+            this.vy = 0;
+            p1c = p2c = p4c = p6c = p7c = -1;
+        }
+        if(dir == 3) { // diagonal hacia abajo
+            this.vx = 1;
+            this.vy = -1;
+            p1c = p2c = p3c = p4c = p6c = -1;
+        }
+        if(dir == 4) { // vertical hacia abajo
+            this.vx = 0;
+            this.vy = -1;
+            p1c = p2c = p3c = p4c = p5c = -1;
+        }
+        if(dir == 6) { // horizontal izquierda
+            this.vx = -1;
+            this.vy = 0;
+            p2c = p3c = p5c = p7c = p8c = -1;
+        }
+        if(dir == 5) { // diagonal abajo izquierda
+            this.vx = -1;
+            this.vy = -1;
+            p1c = p2c = p3c = p5c = p8c = -1;
+        }
+        if(dir == 7) { // diagonal arriba izquierda
+            this.vx = -1;
+            this.vy = 1;
+            p3c = p5c = p6c = p7c = p8c = -1;
+        }
+
+
+
+
+        if(p1c >= 0 && p1c < maxcoord2 && !ocupada(p1c) && !esta(p1,this.contorno))
+            this.contorno.push(p1);
+        if(p2c >= 0 && p2c < maxcoord2 && !ocupada(p2c) && !esta(p2,this.contorno))
+            this.contorno.push(p2);
+        if(p3c >= 0 && p3c < maxcoord2 && !ocupada(p3c) && !esta(p3,this.contorno))
+            this.contorno.push(p3);
+        if(p4c >= 0 && p4c < maxcoord2 && !ocupada(p4c) && !esta(p4,this.contorno))
+            this.contorno.push(p4);
+        if(p5c >= 0 && p5c < maxcoord2 && !ocupada(p5c) && !esta(p5,this.contorno))
+            this.contorno.push(p5);
+        if(p6c >= 0 && p6c < maxcoord2 && !ocupada(p6c) && !esta(p6,this.contorno))
+            this.contorno.push(p6);
+        if(p7c >= 0 && p7c < maxcoord2 && !ocupada(p7c) && !esta(p7,this.contorno))
+            this.contorno.push(p7);
+        if(p8c >= 0 && p8c < maxcoord2 && !ocupada(p8c) && !esta(p8,this.contorno))
+            this.contorno.push(p8);
+
+	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);
+    };
+
+    // funcion que determina si dos particulas se intersectan
+    particle.prototype.intersecta = function(p) {
+        if(!this || !p) return false;
+
+        if(this.maxX < p.minX || this.minX > p.maxX
+            || this.maxY < p.minY || this.minY > p.maxY) return false;
+
+
+        for(var i = 0; i < this.a.length; i++)
+            for(var j = 0; j < p.a.length; j++) {
+                if(this.a[i].x == p.a[j].x && this.a[i].y == p.a[j].y)
+                    return true;
+            }
+
+        return false;
+    };
+
+    // fusiona dos particulas en una sola
+    particle.prototype.fusion = function(p) {
+        var aCopy = p.a.clone();
+        var contCopy = p.contorno.clone();
+        this.a.push(aCopy);
+
+        this.vx = (this.vx+p.vx)/2;
+        this.vy = (this.vy+p.vy)/2;
+        this.minX = Math.min(this.minX, p.minX);
+        this.minY = Math.min(this.minY, p.minY);
+        this.maxX = Math.max(this.maxX, p.maxX);
+        this.maxY = Math.max(this.maxY, p.maxY);
+    };
+
+    particle.prototype.buscarEnContorno = function(x,y) {
+        for(var i = 0; i < this.contorno.length; i++)
+            if(this.contorno[i].x == x && this.contorno[i].y == y) return i;
+
+        return 0; // no esta en el contorno, crece arbitrariamente
+    };
+
+    function stringToDir(s) {
+        if(s == "random") return RANDOM;
+        if(s == "diag1") return 3;
+        if(s == "diag2") return 1;
+        if(s == "vertical") return 8;
+        if(s == "horizontal") return 6;
+    }
+
+    particle.prototype.morir = function() {
+        // libera su espacio
+        /*for(var i = 0; i < this.a.length; i++) {
+            var x = this.a[i].x;
+            var y = this.a[i].y;
+            occupied[x+maxcoord*y].o = 0;
+        }*/
+        if(this.a.length < 500) {
+            this.cangrow = 0;
+        }
+        /*for(var i = 0; i < this.contorno.length; i++)
+            delete this.contorno[i];
+        this.contorno = [];*/
+    }
+
+    particle.prototype.grow = function() {
+      var fin = false;
+      var l = this.contorno.length;
+      var maxim = (l/64)/this.rgrowth;
+
+      if(this.cangrow == 1 && this.tActual > this.tiempoDeVida) { this.morir(); return; }
+      this.tActual++;
+
+        // cambio de direccion
+      if(this.cambiaDir==1 && t!= 0 && t%max_it_cambio == 0) {
+        this.dir = Math.ceil(Math.random()*9);
+        var r = Math.random()*100;
+
+        // cantidad de direcciones sobre las que pueden crecer las particulas
+        var checks = document.getElementsByName('dir');
+        // porcentajes para cada direccion
+        var pdirs = document.getElementsByName('pdir');
+        var cantChecked = 0;
+        var inds = [];
+        for(var ai = 0; ai < checks.length; ai++)
+            if(checks[ai].checked) { 
+                inds.push(ai);
+            }
+
+        var suma = parseFloat(pdirs[inds[0]].value);
+        var fin = false;
+        if(inds[0]>=0 && r <= suma){
+            this.dir = stringToDir(checks[inds[0]].value);
+            fin = true;
+        }
+        if(!fin && inds[1]>=0 && r > suma && r < suma+parseFloat(pdirs[inds[1]].value) ) {
+            this.dir = stringToDir(checks[inds[1]].value); 
+            fin = true;
+        }
+        if(!fin) {
+            suma += parseFloat(pdirs[inds[1]].value);
+        }
+        if(!fin && inds[2]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[2]].value)) {
+            this.dir = stringToDir(checks[inds[2]].value);
+            fin = true;
+        }
+        if(!fin) {
+            suma += parseFloat(pdirs[inds[2]].value);
+        }
+        if(!fin && inds[3]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[3]].value)) {
+            this.dir = stringToDir(checks[inds[3]].value); 
+            fin = true;
+        }
+        if(!fin && inds[4]>=0 && r >= suma+parseFloat(pdirs[inds[3]].value)) {
+            this.dir = stringToDir(checks[inds[4]].value);
+        }
+        if(!fin) alert("error en el programa");
+      }
+
+      for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agregan a la particula
+           
+
+            var resta;
+            if(this.dir == 1 || this.dir == 2 || this.dir == 4 || this.dir == 5
+                || this.dir == 6 || this.dir == 8) resta = 1;
+            if(this.dir == 3 ) resta = 0;
+            if(this.dir == 7 ) resta = 2;
+
+
+            c = this.contorno.length-1 - resta;
+
+            if(this.dir == 0) {
+                c = Math.ceil(Math.random()*(this.contorno.length-1));
+            }
+
+            if(!this.contorno[c]) { c = this.contorno.length-1; }
+            
+            for(var h = 0; h < this.contorno.length; h++)
+            {
+                var cont = this.contorno[c];
+                
+                var nx = cont.x;
+                var ny = cont.y;
+
+                if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
+         				&& !ocupada(nx+maxcoord*ny)) {
+
+                        this.contorno.splice(c,1);
+                        var oc = occupied[nx+maxcoord*ny];
+                        var col = [oc.r,oc.g,oc.b];
+
+                        this.add(nx,ny,col);
+                        break;
+		               }
+
+                c = (c+1)%(this.contorno.length-1);
+            }
+      }
+
+      var tempA = [];
+      for(var i = 0; i < this.contorno.length; i++) {
+            var cont = this.contorno[i];
+            var actual = cont.x+cont.y*maxcoord;
+            if(!ocupada(actual)) {
+                tempA.push(this.contorno[i]);
+            }
+      }
+      this.contorno = tempA;
+      if(this.contorno.length == 0 ) this.cangrow = 0;
+
+    };
+
+    function esta (a,x,y) {
+        for(var i = 0; i < a.length; i++)
+            if(a[i].x == x && a[i].y == y) return true;
+
+        return false;
+    }
+
+    function dist(p1,p2) {
+        var d1 = Math.abs(p1.x - p2.x);
+        var d2 = Math.abs(p1.y - p2.y);
+        var d = Math.sqrt( d1*d1 + d2*d2 );
+        return d;
+    }
+
+    function init_particles() {
+        CANT_PARTICLES = parseFloat($('cantp').value);
+        CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
+        maxSize = parseFloat($('maxSize').value);
+        particles = [];
+        for(var i = 0; i < CANT_PARTICLES; i++) {
+
+            var x = Math.random();
+            var y = Math.random();
+
+            var px = Math.ceil(x*maxcoord);
+            var py = Math.ceil(y*maxcoord);
+            particles[i] = new particle(px,py,i,10000,0,0,0,-1,true);
+        }
+
+    }
+
+    // una iteracion del algoritmo
+    function mover() {
+
+        // nuevas particulas
+        var lactual = particles.length;
+        var ult = lactual;
+        if(t%100 == 0) {
+            var c1 = Math.random();
+            var c2 = Math.random();
+            var c3 = Math.random();
+            for(var i = 0; i < 10; i++) {
+
+                var x = Math.random();
+                var y = Math.random();
+
+                var px = Math.ceil(x*maxcoord);
+                var py = Math.ceil(y*maxcoord);
+                if(px > 0 && py > 0 && px < maxcoord && py < maxcoord && !ocupada(px+maxcoord*py)) {
+                    particles[ult] = 
+            new particle(px,py,ult,10000,c1,c2,c3,0,false); 
+                    ult++;
+                }
+            }
+        }
+
+        for(var i = 0; i < CANT_NEW_PARTICLES; i++) {
+
+            var x = Math.random();
+            var y = Math.random();
+
+            var px = Math.ceil(x*maxcoord);
+            var py = Math.ceil(y*maxcoord);
+            if(px > 0 && py > 0 && px < maxcoord && py < maxcoord && !ocupada(px+maxcoord*py)) {
+                particles[ult] = new particle(px,py,ult,10000,0,0,0,-1,true);
+                ult++;
+            }
+        }
+
+        largoCont = 0;
+        for(var i = 0; i < particles.length; i++) {
+           var pi = particles[i];
+           if(pi.cangrow && pi.a.length < maxSize)
+               pi.grow(); // simulacion de crecimiento de la burbuja
+           else pi.morir();
+           largoCont += pi.contorno.length;
+        };
+
+        /*for(var i = 0; i < particles.length; i++) {
+
+            for(var j = 0; j < particles.length; j++) {
+                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) { 
+                    if(particles[i].a.length > particles[j].a.length) {
+                        particles[i].fusion(particles[j]);
+                        particles[j] = undefined;
+                    }
+                    else  {
+                        particles[j].fusion(particles[i]);
+                        particles[i] = undefined;
+                    }
+                }
+            }
+        }
+
+        // eliminamos las undefined
+        particles = particles.compact();*/
+
+    }
+
+
+
+    function drawScene() {
+
+        mover();
+        for(var it = 0; it < TIEMPO-1 ; it++) {
+            if(largoCont > 0) { t++; mover(); } else break;
+        }
+
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clearColor(parseFloat($('canvasR').value)*0.003921569, parseFloat($('canvasR').value)*0.003921569, parseFloat($('canvasG').value)*0.003921569, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+        mat4.identity(mvMatrix);
+
+        mat4.translate(mvMatrix, [-2.0, -2.0, -6.0]);
+
+        var vertices = [];
+        var colors = [];
+        var normals = [];
+        var cant = 0;
+
+        setMatrixUniforms();
+        triangleVertexPositionBuffer = gl.createBuffer();
+      	triangleVertexColorBuffer = gl.createBuffer();
+        sceneVertexNormalBuffer = gl.createBuffer();
+
+
+        gl.uniform3f(
+            shaderProgram.pointLightingLocationUniform,
+            parseFloat(document.getElementById("lightPositionX").value),
+            parseFloat(document.getElementById("lightPositionY").value),
+            parseFloat(document.getElementById("lightPositionZ").value)
+        );
+
+        var cant = 0, j = 0;
+        vertices = [];
+        colors = [];
+        normals = [];
+
+        while(j< maxcoord2) {
+             var p = occupied[j];
+             if(p /*&& p.o*/) {
+                 vertices.push(p.x*0.01,p.y*0.01,0.0);
+                 var c = (Math.random()*2-1)*(varparticlecolor);
+                 colors.push(p.r+c,p.g+c,p.b+c,1.0);
+                 normals.push(0.0,0.0,1.0);
+                 cant++;
+            }
+            j++;
+            if(cant > 1/*maxcoord*0.01*/ || j >= maxcoord2) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                triangleVertexPositionBuffer.itemSize = 3;
+                triangleVertexPositionBuffer.numItems = cant;
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+               	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+                triangleVertexColorBuffer.itemSize = 4;
+               	triangleVertexColorBuffer.numItems = cant;
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, sceneVertexNormalBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+                sceneVertexNormalBuffer.itemSize = 3;
+                sceneVertexNormalBuffer.numItems = cant;
+                gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+
+
+                gl.drawArrays(gl.POINTS, 0, cant);
+
+                cant = 0;
+                vertices = [];
+                colors = [];
+                normals = [];
+
+            }
+        }
+        
+
+        $('iteracion').innerHTML = it+1;
+        $('contorno').innerHTML = largoCont;
+
+        for(var i = 0; i < maxcoord2; i++)
+            delete occupied[i];
+    
+        var cantParticulas = 0;
+        for(var i = 0; i < particles.length; i++) {
+            if(particles[i].cangrow == 1) cantParticulas++;
+            var pi = particles[i];
+            for(var j = 0; j < pi.a.length; j++)
+                delete pi.a[j];    
+            delete particles[i];
+        }
+        $('particulas').innerHTML = cantParticulas;
+
+    }
+
+    function init_variables() {
+        TIEMPO = $('tiempo').value;
+        c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value)];
+        c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value)];
+
+        varcolor = parseFloat($('varcolor').value);
+        varparticlecolor = parseFloat($('varparticlecolor').value);
+        max_it_cambio = parseFloat($('itercambio').value);
+
+        // cada cuantas iteraciones cambia la direccion
+
+        t = 0;
+
+        occupied = [];
+        for(var i = 0; i < maxcoord; i++)
+            for(var j = 0; j < maxcoord; j++)
+                occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0);
+
+        init_particles();
+
+    }
+
+    function webGLStart() {
+        var canvas = document.getElementById("lesson01-canvas");
+        initGL(canvas);
+        initShaders();
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+    }
+
+</script>
+</head>
+
+<body onload="webGLStart();" style="background-color:black;" >
+
+   <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
+
+   <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
+        <input type = "button" value = "Render!" style="width:300" onclick="init_variables(); drawScene();" />
+   <div id = "container" style = "background-color:gray;" >
+
+       Iteracion: <span id="iteracion">0</span>
+       Contorno: <span id="contorno">0</span>
+       Particulas: <span id="particulas">0</span>
+        <br />
+        <table style="border: 0; padding: 10px;">
+            <th>
+
+            <td>R</td><td>G</td><td>B</td><td>Porcentaje</td>
+            </th>
+            <tr>
+                   <td><b>Posici&oacute;n de la Luz</b></td>
+                   <td><input id="lightPositionX" type="text" value="-3.0" size=5 /></td>
+                   <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
+
+                   <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
+            </tr>
+            <tr>
+                   <td><b>Posici&oacute;n de la Luz</b></td>
+                   <td><input id="canvasR" type="text" value="100" size=3 /></td>
+                   <td><input id="canvasG" type="text" value="100" size=3 /></td>
+                   <td><input id="canvasB" type="text" value="100" size=3 /></td>
+            </tr>
+
+            <tr>
+                   <td><b>Color 1</b></td>
+                   <td><input id="c1r" type="text" value="211" size=5 /></td>
+                   <td><input id="c1g" type="text" value="175" size=5 /></td>
+                   <td><input id="c1b" type="text" value="101" size=5 /></td>
+                   <td><input id="c1p" type="text" value="50" size=5 /></td>
+            </tr>
+            <tr>
+
+                   <td><b>Color 2</b></td>
+                   <td><input id="c2r" type="text" value="158" size=5 /></td>
+                   <td><input id="c2g" type="text" value="101" size=5 /></td>
+                   <td><input id="c2b" type="text" value="14" size=5 /></td>
+                    <td></td>
+            </tr>
+        </table>
+        <table>
+
+            <tr><b>Crecimiento De las Part&iacute;culas</b>
+            <tr><td>Random<input name="dir" value="random" type="checkbox" checked /></td>
+                          <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
+            <tr><td>Diagonal 1<input name="dir" value="diag1" type="checkbox"  checked canti/></td>
+                          <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
+            <tr><td>Diagonal 2<input name="dir" value="diag2" type="checkbox"  /></td>
+
+                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
+            <tr><td>Vertical<input name="dir" value="vertical" type="checkbox"  /></td>
+                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
+            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" /></td>
+                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
+        </table>
+        <table>
+            <tr>
+
+                  <td> <b>Iteraciones hasta el cambio de direccion</b> <input id="itercambio" type="text" value="20" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="500" size=3 /></td> 
+            </tr>
+            <tr>
+
+                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="100" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
+
+            </tr>
+            <tr>
+                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="10000" size=5 /></td>
+            </tr>
+            <tr>
+                  <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.1" size=5 /></td>
+
+            </tr>
+            <tr>
+                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.1" size=5 /></td>
+            </tr>
+        </table>
+       
+    </div>
+
+</body>
+
+</html>
+
