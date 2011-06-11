@@ -384,7 +384,6 @@ i<html>
             p[2] = p[4] = p[5] = p[6] = p[7] = 0;
         }
 
-        //this.contorno = [];
         for(var h = 0; h < p.length; h++) {
             if(p[h] > 0) {
                 var i = vals[h].x;
@@ -450,6 +449,7 @@ i<html>
     function setDirs() {
 
         pdirs = document.getElementsByName('pdir');
+        inds = [];
 
         for(var i = 0; i < pdirs.length; i++)
             if(pdirs[i].value > 0) { 
@@ -502,7 +502,7 @@ i<html>
         }
     }
 
-      for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agregan a la particula
+      //for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agregan a la particula
            
 
             var resta;
@@ -523,24 +523,29 @@ i<html>
             for(var h = 0; h < this.contorno.length; h++)
             {
                 var cont = this.contorno[c];
+
+                if(!cont) { c++; continue; }
                 
                 var nx = cont.x;
                 var ny = cont.y;
 
+                this.contorno.splice(c,1);
+
                 if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
          				&& !ocupada(nx+maxcoord*ny)) {
 
-                        this.contorno.splice(c,1);
                         var oc = occupied[nx+maxcoord*ny];
-                        var col = [oc.r,oc.g,oc.b];
+                        if(oc) {
+                            var col = [oc.r,oc.g,oc.b];
 
-                        this.add(nx,ny,col);
-                        break;
+                            this.add(nx,ny,col);
+                            break;
+                        }
 		               }
-
+                //c = this.contorno.length-4;
                 c = (c+1)%(this.contorno.length-1);
             }
-      }
+     // }
 
     };  
 
@@ -588,12 +593,6 @@ i<html>
     }
 
     particle.prototype.morir = function() {
-        // libera su espacio
-        /*for(var i = 0; i < this.a.length; i++) {
-            var x = this.a[i].x;
-            var y = this.a[i].y;
-            occupied[x+maxcoord*y].o = 0;
-        }*/
         if(this.a.length < 300) {
             this.cangrow = 0;
         }
@@ -652,53 +651,7 @@ i<html>
     }
 
 
-   /* // una iteracion del algoritmo
-    function mover() {
-
-        // nuevas particulas
-        var ult = particles.length;
-        /*if(t % 40 == 0) {
-            var nuevas = [];
-            for(var i = 0; i < particles.length; i++) {
-                // ultimo texel de la particula
-                var p = particles[i].a[particles[i].a.length-1];
-                //particles[i].cangrow = 0;
-
-                nuevas.push(new particle(p.x,p.y,i,100,100,100, i+1,false));
-                nuevas.push(new particle(p.x,p.y,i,100,100,100, i,false));
-            }
-            for(var i = 0; i < 2; i++)
-                particles = particles.concat(nuevas[i]);
-         */  
-            /*for(var i = 0; i < CANT_NEW_PARTICLES; i++) {
-
-                var x = Math.random();
-                var y = Math.random();
-
-                var px = Math.floor(x*maxcoord);
-                var py = Math.floor(y*maxcoord);
-                if(!ocupada(px+maxcoord*py)) {
-                    particles[ult++] = new particle(px,py,ult,1000,0,0,0,-1,true);
-                }
-            }*/
-        //}
-
-  /*      largoCont = 0;
-        for(var i = 0; i < particles.length; i++) {
-           var pi = particles[i];
-           if(pi.cangrow && pi.a.length < maxSize)
-               pi.grow(); // simulacion de crecimiento de la burbuja
-           else pi.morir();
-           largoCont += pi.contorno.length;
-        };
-
-        for(var i = 0; i < particles.length; i++)
-            if(pi.cangrow) particles[i].limpiarContorno();
-
-       
-    }*/
-
-    function degToRad(degrees) {
+     function degToRad(degrees) {
         return degrees * Math.PI / 180;
     }
 
@@ -879,6 +832,7 @@ i<html>
         var t2 = d2.getTime();
 
         $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
+        $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
 
 
         $('iteracion').innerHTML = it+1;
@@ -919,7 +873,7 @@ i<html>
     }
 
     function ocupada(i) {
-        if(!occupied[i]) { alert("NOT OCCUPIED!" + i); return;}
+        if(!occupied[i]) { return false;}
         return (occupied[i].o == 1 && particles[occupied[i].particle].cangrow == 1);
     }
 
@@ -1061,6 +1015,7 @@ i<html>
         });
     }
 
+
     function webGLStart() {
         var canvas = document.getElementById("lesson01-canvas");
         loadTeapot();
@@ -1091,6 +1046,7 @@ i<html>
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
        Segundos: <span id="tiempoIt">0</span>
+       Promedio Por It: <span id="promedioIt">0</span>
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
