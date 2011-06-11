@@ -34,7 +34,7 @@ i<html>
         float NH = dot(normal,halfv);
 
 
-        float uMaterialShininess = 16.0;
+        float uMaterialShininess = 4.0;
         float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 
@@ -122,6 +122,13 @@ i<html>
     var lastTime = 0;
     var stop = 0; // se hizo click, recalcular textura
     var animar = true; // frenar/continuar la animacion
+
+    // indices elegidos por el usuario
+    var inds = [];
+    // direcciones sobre las que pueden crecer las particulas
+    var checks;
+    // porcentajes para cada direccion
+    var pdirs;
 
     var gl;
     function initGL(canvas) {
@@ -259,15 +266,18 @@ i<html>
     }
 
     // cada particula cuenta con multiples puntos
-    function particle(x,y,i) {
+    function particle(x,y,i,tiempo, pr,pg,pb, dir,cambia) {
 
         var cf = [];
-        var c = Math.random()*2-1;
-        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2; }
+        var c = Math.random();
+        if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
         var d = 0.003921569; // 1/255
-        this.r =  cf[0]*d + c*varcolor;
-        this.g =  cf[1]*d + c*varcolor;
-        this.b =  cf[2]*d + c*varcolor;
+        this.r =  pr || cf[0]*d;
+        this.g =  pg || cf[1]*d;
+        this.b =  pb || cf[2]*d;
+        this.r += c*varcolor;
+        this.g += c*varcolor;
+        this.b += c*varcolor;
 
         this.i = i;
 
@@ -281,23 +291,22 @@ i<html>
 
         this.vy = -1;
         this.vx = -1;
-        this.dir = stringToDir(d);
+        if(dir >= 0)
+            this.dir = dir;
+        else this.dir = stringToDir(d);
 
+        this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
+        this.tActual = 0;
 
         this.rgrowth = Math.ceil(Math.random()*2);
         this.cangrow = 1; // crece?
-        /*if(Math.random() < 0.9)
-            this.cambiaDir = 0;
-        else this.cambiaDir = 1;*/
 
-        this.cambiaDir = 1;
-
-
+        this.cambiaDir = cambia;
 
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
 
-        this.add(x,y);
+        this.add(x,y,[this.r,this.g,this.b]);
        
     }
 
@@ -310,111 +319,101 @@ i<html>
         }
     }
 
-    // agregar un punto a una particula
-    particle.prototype.add = function(x,y) { 
-        var r = this.r;
-        var g = this.g;
-        var b = this.b;
+    particle.prototype.add = function(x,y,col) { 
+        var r,g,b;
+
+        r = (this.r + col[0])/2;
+        g = (this.g + col[1])/2;
+        b = (this.b + col[2])/2;
 
 
 
         this.a[this.a.length] = new point(x,y,this.i,r,g,b); 
-        if(x < this.minX) this.minX = x;
-        if(x > this.maxX) this.maxY = x;
-        if(y < this.minY) this.minY = y;
-        if(y > this.maxY) this.maxY = y;
 
-        var p1 = new point(x-1,y+1,-1,r,g,b);
-        var p2 = new point(x,y+1,-1,r,g,b);
-        var p3 = new point(x+1,y+1,-1,r,g,b);
-        var p4 = new point(x-1,y,-1,r,g,b);
-        var p5 = new point(x+1,y,-1,r,g,b);
-        var p6 = new point(x-1,y-1,-1,r,g,b);
-        var p7 = new point(x,y-1,-1,r,g,b);
-        var p8 = new point(x+1,y-1,-1,r,g,b);
-
-        var p1c = p1.x+p1.y*maxcoord;
-        var p2c = p2.x+p2.y*maxcoord;
-        var p3c = p3.x+p3.y*maxcoord;
-        var p4c = p4.x+p4.y*maxcoord;
-        var p5c = p5.x+p5.y*maxcoord;
-        var p6c = p6.x+p6.y*maxcoord;
-        var p7c = p7.x+p7.y*maxcoord;
-        var p8c = p8.x+p8.y*maxcoord;
-
-
+        var p = [1,1,1,1,1,1,1,1]; // se usa la direccion o no
+        var vals = [
+            {'x':x-1,"y":y+1},
+            {'x':x,"y":y+1},
+            {'x':x+1,"y":y+1},
+            {'x':x-1,"y":y},
+            {'x':x+1,"y":y},
+            {'x':x-1,"y":y-1},
+            {'x':x,"y":y-1},
+            {'x':x+1,"y":y-1}
+        ];
         var dir = this.dir;
         if(dir == RANDOM) { // random
             this.vx = 0;
             this.vy = 0;
-            p1c = p3c = p6c = p8c = -1;
-        }
-        if(dir == 1) { // diagonal
-            this.vx = 1;
-            this.vy = 1;
-            p1c = p4c = p6c = p7c = p8c = -1;
-        }
-        if(dir == 8) { // vertical
-            this.vx = 0;
-            this.vy = 1;
-            p4c = p5c = p6c = p7c = p8c = -1;
-        }
-        if(dir == 2) { // horizontal
-            this.vx = 1;
-            this.vy = 0;
-            p1c = p2c = p4c = p6c = p7c = -1;
-        }
-        if(dir == 3) { // diagonal hacia abajo
-            this.vx = 1;
-            this.vy = -1;
-            p1c = p2c = p3c = p4c = p6c = -1;
-        }
-        if(dir == 4) { // vertical hacia abajo
-            this.vx = 0;
-            this.vy = -1;
-            p1c = p2c = p3c = p4c = p5c = -1;
+            p[0] = p[2] = p[5] = p[7] = 0;
         }
         if(dir == 6) { // horizontal izquierda
             this.vx = -1;
             this.vy = 0;
-            p2c = p3c = p5c = p7c = p8c = -1;
+            p[1] = p[2] = p[4] = p[6] = p[7] = 0;
+        }
+        if(dir == 1) { // diagonal
+            this.vx = 1;
+            this.vy = 1;
+            p[0] = p[3] = p[5] = p[6] = p[7] = 0;
+        }
+        if(dir == 8) { // vertical
+            this.vx = 0;
+            this.vy = 1;
+            p[3] = p[4] = p[5] = p[6] = p[7] = 0;
+        }
+        if(dir == 2) { // horizontal
+            this.vx = 1;
+            this.vy = 0;
+            p[0] = p[1] = p[3] = p[5] = p[6] = 0;
+        }
+        if(dir == 3) { // diagonal hacia abajo
+            this.vx = 1;
+            this.vy = -1;
+            p[0] = p[1] = p[2] = p[3] = p[5] = 0;
+        }
+        if(dir == 4) { // vertical hacia abajo
+            this.vx = 0;
+            this.vy = -1;
+            p[0] = p[1] = p[2] = p[3] = p[4] = 0;
         }
         if(dir == 5) { // diagonal abajo izquierda
             this.vx = -1;
             this.vy = -1;
-            p1c = p2c = p3c = p5c = p8c = -1;
+            p[0] = p[1] = p[2] = p[4] = p[7] = 0;
         }
         if(dir == 7) { // diagonal arriba izquierda
             this.vx = -1;
             this.vy = 1;
-            p3c = p5c = p6c = p7c = p8c = -1;
+            p[2] = p[4] = p[5] = p[6] = p[7] = 0;
         }
 
+        //this.contorno = [];
+        for(var h = 0; h < p.length; h++) {
+            if(p[h] > 0) {
+                var i = vals[h].x;
+                var j = vals[h].y;
 
+                var pos = i+j*maxcoord;
+                if(pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
+                    this.contorno.push(new point(i,j,-1,r,g,b));
+                }
+            }
+        }
 
-
-        if(p1c >= 0 && p1c < maxcoord2 && occupied[p1c].o == 0 && !esta(p1,this.contorno))
-            this.contorno.push(p1);
-        if(p2c >= 0 && p2c < maxcoord2 && occupied[p2c].o == 0 && !esta(p2,this.contorno))
-            this.contorno.push(p2);
-        if(p3c >= 0 && p3c < maxcoord2 && occupied[p3c].o == 0 && !esta(p3,this.contorno))
-            this.contorno.push(p3);
-        if(p4c >= 0 && p4c < maxcoord2 && occupied[p4c].o == 0 && !esta(p4,this.contorno))
-            this.contorno.push(p4);
-        if(p5c >= 0 && p5c < maxcoord2 && occupied[p5c].o == 0 && !esta(p5,this.contorno))
-            this.contorno.push(p5);
-        if(p6c >= 0 && p6c < maxcoord2 && occupied[p6c].o == 0 && !esta(p6,this.contorno))
-            this.contorno.push(p6);
-        if(p7c >= 0 && p7c < maxcoord2 && occupied[p7c].o == 0 && !esta(p7,this.contorno))
-            this.contorno.push(p7);
-        if(p8c >= 0 && p8c < maxcoord2 && occupied[p8c].o == 0 && !esta(p8,this.contorno))
-            this.contorno.push(p8);
-
-	    occupied[x+y*maxcoord] = new point(x,y,this.i,r,g,b);
+        var pos = x+y*maxcoord;
+	    occupied[pos] = new point(x,y,this.i,r,g,b);
+        occupied[pos].x = x;
+	    occupied[pos].y = y;
+	    occupied[pos].particle = this.i;
+	    occupied[pos].r = r;
+	    occupied[pos].g = g;
+	    occupied[pos].b = b;
     };
 
+
     // funcion que determina si dos particulas se intersectan
-    particle.prototype.intersecta = function(p) {
+    /*particle.prototype.intersecta = function(p) {
         if(!this || !p) return false;
 
         if(this.maxX < p.minX || this.minX > p.maxX
@@ -442,14 +441,7 @@ i<html>
         this.minY = Math.min(this.minY, p.minY);
         this.maxX = Math.max(this.maxX, p.maxX);
         this.maxY = Math.max(this.maxY, p.maxY);
-    };
-
-    particle.prototype.buscarEnContorno = function(x,y) {
-        for(var i = 0; i < this.contorno.length; i++)
-            if(this.contorno[i].x == x && this.contorno[i].y == y) return i;
-
-        return 0; // no esta en el contorno, crece arbitrariamente
-    };
+    };*/
 
     function stringToDir(s) {
         if(s == "random") return RANDOM;
@@ -459,64 +451,67 @@ i<html>
         if(s == "horizontal") return 6;
     }
 
+    function setDirs() {
+
+        for(var i = 0; i < checks.length; i++)
+            if(checks[i].checked) { 
+                inds.push(i);
+            }
+
+    }
+
     particle.prototype.grow = function() {
       var fin = false;
       var l = this.contorno.length;
       var maxim = (l/64)/this.rgrowth;
+
+      if(this.cangrow == 1 && this.tActual > this.tiempoDeVida) { this.morir(); return; }
+      this.tActual++;
+
 
         // cambio de direccion
       if(this.cambiaDir==1 && t!= 0 && t%max_it_cambio == 0) {
         this.dir = Math.ceil(Math.random()*9);
         var r = Math.random()*100;
 
-        // direcciones sobre las que pueden crecer las particulas
-        var checks = document.getElementsByName('dir');
-        // porcentajes para cada direccion
-        var pdirs = document.getElementsByName('pdir');
-        var cantChecked = 0;
-        var inds = [];
-        for(var ai = 0; ai < checks.length; ai++)
-            if(checks[ai].checked) { 
-                inds.push(ai);
-            }
-
         var suma = parseFloat(pdirs[inds[0]].value);
         var fin = false;
-        this.dir = stringToDir(checks[inds[0]].value);
-        if( r <= suma){
-            fin = true;
-        }
-        if(!fin && inds[1]>=0 && r > suma && r < suma+parseFloat(pdirs[inds[1]].value) ) {
-            this.dir = stringToDir(checks[inds[1]].value); 
-            fin = true;
-        }
-        if(!fin && inds[1]>=0) {
+        for(;;) {        
+            if(inds[0]>=0 && r <= suma){
+                this.dir = stringToDir(checks[inds[0]].value);
+                break;
+            }
+            if(inds[1]>=0 && r > suma && r < suma+parseFloat(pdirs[inds[1]].value) ) {
+                this.dir = stringToDir(checks[inds[1]].value); 
+                break;
+            }
             suma += parseFloat(pdirs[inds[1]].value);
-        }
-        if(!fin && inds[2]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[2]].value)) {
-            this.dir = stringToDir(checks[inds[2]].value);
-            fin = true;
-        }
-        if(!fin && inds[2]>=0) {
+            if(inds[2]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[2]].value)) {
+                this.dir = stringToDir(checks[inds[2]].value);
+                break;
+            }
             suma += parseFloat(pdirs[inds[2]].value);
+            if(inds[3]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[3]].value)) {
+                this.dir = stringToDir(checks[inds[3]].value); 
+                break;
+            }
+            if(inds[4]>=0 && r >= suma+parseFloat(pdirs[inds[3]].value)) {
+                this.dir = stringToDir(checks[inds[4]].value);
+                break;
+            }
+            alert("error en el programa"); 
+            break;
         }
-        if(!fin && inds[3]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[3]].value)) {
-            this.dir = stringToDir(checks[inds[3]].value); 
-            fin = true;
-        }
-        if(!fin && inds[4]>=0 && r >= suma+parseFloat(pdirs[inds[3]].value)) {
-            this.dir = stringToDir(checks[inds[4]].value);
-        }
-        if(!fin) alert("error en el programa");
-      }
+    }
 
       for(var g = 0; g < maxim ; g++) { // cantidad de puntos que se le agregan a la particula
            
 
             var resta;
+            if(this.dir == 1 || this.dir == 2 || this.dir == 4 || this.dir == 5
+                || this.dir == 6 || this.dir == 8) resta = 1;
             if(this.dir == 3 ) resta = 0;
             if(this.dir == 7 ) resta = 2;
-            if(this.dir != 3 && this.dir != 7) resta = 1;
 
 
             c = this.contorno.length-1 - resta;
@@ -535,11 +530,13 @@ i<html>
                 var ny = cont.y;
 
                 if(nx >= 0 && ny >= 0 && nx < maxcoord && ny < maxcoord 
-         				&& !occupied[nx+maxcoord*ny].o) {
+         				&& !ocupada(nx+maxcoord*ny)) {
 
                         this.contorno.splice(c,1);
+                        var oc = occupied[nx+maxcoord*ny];
+                        var col = [oc.r,oc.g,oc.b];
 
-                        this.add(nx,ny);
+                        this.add(nx,ny,col);
                         break;
 		               }
 
@@ -547,20 +544,22 @@ i<html>
             }
       }
 
-      var tempA = [];
-      for(var i = 0; i < this.contorno.length; i++) {
+    };  
+
+    particle.prototype.limpiarContorno = function() {
+        var tempA = [];
+        for(var i = 0; i < this.contorno.length; i++) {
             var cont = this.contorno[i];
             var actual = cont.x+cont.y*maxcoord;
-            if(occupied[actual].o == 0) {
-                tempA.push(this.contorno[i]);
+            if(cont.x >= 0 && cont.y >= 0 && cont.x < maxcoord && cont.y < maxcoord && !ocupada(actual)) {
+                tempA.push(cont);
             }
-      }
-      this.contorno = tempA;
-      if(this.contorno.length == 0 ) this.cangrow = 0;
+        }
+        this.contorno = tempA;
+        if(this.contorno.length == 0 ) this.cangrow = 0;
+    }
 
-    };
-
-    function esta (a,x,y) {
+    function esta (x,y,a) {
         for(var i = 0; i < a.length; i++)
             if(a[i].x == x && a[i].y == y) return true;
 
@@ -580,13 +579,44 @@ i<html>
         maxSize = parseFloat($('maxSize').value);
         particles = [];
         for(var i = 0; i < CANT_PARTICLES; i++) {
+            var x = Math.random();
+            var y = Math.random();
+
+            var px = Math.ceil(x*maxcoord);
+            var py = Math.ceil(y*maxcoord);
+            particles[i] = new particle(px,py,i,1000,0,0,0,-1,true);
+        }
+
+    }
+
+    particle.prototype.morir = function() {
+        // libera su espacio
+        /*for(var i = 0; i < this.a.length; i++) {
+            var x = this.a[i].x;
+            var y = this.a[i].y;
+            occupied[x+maxcoord*y].o = 0;
+        }*/
+        if(this.a.length < 500) {
+            this.cangrow = 0;
+        }
+        /*for(var i = 0; i < this.contorno.length; i++)
+            delete this.contorno[i];
+        this.contorno = [];*/
+    }
+
+    function init_particles() {
+        CANT_PARTICLES = parseFloat($('cantp').value);
+        CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
+        maxSize = parseFloat($('maxSize').value);
+        particles = [];
+        for(var i = 0; i < CANT_PARTICLES; i++) {
 
             var x = Math.random();
             var y = Math.random();
 
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
-            particles[i] = new particle(px,py,i);
+            particles[i] = new particle(px,py,i,1000,0,0,0,-1,true);
         }
 
     }
@@ -604,8 +634,9 @@ i<html>
 
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
-            if(px > 0 && py > 0 && px < maxcoord && py < maxcoord && occupied[px+maxcoord*py].o == 0) {
-                particles[ult++] = new particle(px,py,i);
+            if(px > 0 && py > 0 && px < maxcoord && py < maxcoord && !ocupada(px+maxcoord*py)) {
+                particles[ult] = new particle(px,py,ult,1000,0,0,0,-1,true);
+                ult++;
             }
         }
 
@@ -613,30 +644,61 @@ i<html>
         for(var i = 0; i < particles.length; i++) {
            var pi = particles[i];
            if(pi.cangrow && pi.a.length < maxSize)
-               pi.grow(); // crecimiento de la particula
+               pi.grow(); // simulacion de crecimiento de la burbuja
+           else pi.morir();
            largoCont += pi.contorno.length;
         };
 
-        /*for(var i = 0; i < particles.length; i++) {
-
-            for(var j = 0; j < particles.length; j++) {
-                if(i!= j && particles[i] && particles[j] && particles[i].intersecta(particles[j])) { 
-                    if(particles[i].a.length > particles[j].a.length) {
-                        particles[i].fusion(particles[j]);
-                        particles[j] = undefined;
-                    }
-                    else  {
-                        particles[j].fusion(particles[i]);
-                        particles[i] = undefined;
-                    }
-                }
-            }
-        }
-
-        // eliminamos las undefined
-        particles = particles.compact();*/
-
+        for(var i = 0; i < particles.length; i++)
+            if(pi.cangrow) particles[i].limpiarContorno();
     }
+
+
+   /* // una iteracion del algoritmo
+    function mover() {
+
+        // nuevas particulas
+        var ult = particles.length;
+        /*if(t % 40 == 0) {
+            var nuevas = [];
+            for(var i = 0; i < particles.length; i++) {
+                // ultimo texel de la particula
+                var p = particles[i].a[particles[i].a.length-1];
+                //particles[i].cangrow = 0;
+
+                nuevas.push(new particle(p.x,p.y,i,100,100,100, i+1,false));
+                nuevas.push(new particle(p.x,p.y,i,100,100,100, i,false));
+            }
+            for(var i = 0; i < 2; i++)
+                particles = particles.concat(nuevas[i]);
+         */  
+            /*for(var i = 0; i < CANT_NEW_PARTICLES; i++) {
+
+                var x = Math.random();
+                var y = Math.random();
+
+                var px = Math.floor(x*maxcoord);
+                var py = Math.floor(y*maxcoord);
+                if(!ocupada(px+maxcoord*py)) {
+                    particles[ult++] = new particle(px,py,ult,1000,0,0,0,-1,true);
+                }
+            }*/
+        //}
+
+  /*      largoCont = 0;
+        for(var i = 0; i < particles.length; i++) {
+           var pi = particles[i];
+           if(pi.cangrow && pi.a.length < maxSize)
+               pi.grow(); // simulacion de crecimiento de la burbuja
+           else pi.morir();
+           largoCont += pi.contorno.length;
+        };
+
+        for(var i = 0; i < particles.length; i++)
+            if(pi.cangrow) particles[i].limpiarContorno();
+
+       
+    }*/
 
     function degToRad(degrees) {
         return degrees * Math.PI / 180;
@@ -696,7 +758,7 @@ i<html>
 
         while(j< maxcoord2) {
              var p = occupied[j];
-             if(p && p.o) {
+             if(p) {
                  vertices.push(p.x/(maxcoord-2),p.y/(maxcoord-2),0.0);
                  var c = (Math.random()*2-1)*(varparticlecolor);
                  colors.push(p.r+c,p.g+c,p.b+c,1.0);
@@ -809,10 +871,16 @@ i<html>
         }
 
 
+        var d = new Date();
+        var t1 = d.getTime();
         mover();
         for(var it = 0; it < TIEMPO-1 ; it++) {
-            if(largoCont > 0) { t++; mover(); } else break;
+            if(largoCont > 0) { t++;  mover(); } else break;
         }
+        var d2 = new Date();
+        var t2 = d2.getTime();
+
+        $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000;
 
 
         $('iteracion').innerHTML = it+1;
@@ -852,6 +920,11 @@ i<html>
         }
     }
 
+    function ocupada(i) {
+        if(!occupied[i]) { alert("NOT OCCUPIED!" + i); return;}
+        return (occupied[i].o == 1 && particles[occupied[i].particle].cangrow == 1);
+    }
+
 
     function init_variables() {
         TIEMPO = $('tiempo').value;
@@ -870,6 +943,10 @@ i<html>
         for(var i = 0; i < maxcoord; i++)
             for(var j = 0; j < maxcoord; j++)
                 occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0);
+
+        checks = document.getElementsByName('dir');
+        pdirs = document.getElementsByName('pdir');
+        setDirs();
 
         init_particles();
 
@@ -1017,6 +1094,7 @@ i<html>
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
+       Segundos: <span id="tiempoIt">0</span>
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
@@ -1045,26 +1123,26 @@ i<html>
         </table>
         <table>
             <tr><b>Crecimiento De las Part&iacute;culas</b>
-            <tr><td>Random<input name="dir" value="random" type="checkbox" checked /></td>
-                          <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
+            <tr><td>Random<input name="dir" value="random" type="checkbox" /></td>
+                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
             <tr><td>Diagonal 1<input name="dir" value="diag1" type="checkbox"  /></td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
-            <tr><td>Diagonal 2<input name="dir" value="diag2" type="checkbox"  /></td>
-                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
+            <tr><td>Diagonal 2<input name="dir" value="diag2" type="checkbox" checked /></td>
+                          <td><input name="pdir" type="text" value="100" size=3 /></td></tr>
             <tr><td>Vertical<input name="dir" value="vertical" type="checkbox"  /></td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
-            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" checked /></td>
-                          <td><input name="pdir" type="text" value="50" size=3 /></td></tr>
+            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" /></td>
+                          <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
         </table>
         <table>
             <tr>
                   <td> <b>Iteraciones hasta el cambio de direccion</b> <input id="itercambio" type="text" value="20" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="5000" size=3 /></td> 
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="100" size=3 /></td> 
             </tr>
             <tr>
-                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="100" size=5 /></td>
+                  <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="1" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
