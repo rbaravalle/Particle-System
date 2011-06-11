@@ -125,8 +125,6 @@ i<html>
 
     // indices elegidos por el usuario
     var inds = [];
-    // direcciones sobre las que pueden crecer las particulas
-    var checks;
     // porcentajes para cada direccion
     var pdirs;
 
@@ -284,16 +282,14 @@ i<html>
         this.a = [];
         this.contorno = [];
 
-        var checks = document.getElementsByName('dir');
-
-        for(var ai = 0; ai < checks.length; ai++)
-            if(checks[ai].checked) { d = checks[ai].value; break; }
+        for(var ai = 0; ai < pdirs.length; ai++)
+            if(pdirs[ai].value > 0) { d = ai; break; }
 
         this.vy = -1;
         this.vx = -1;
         if(dir >= 0)
             this.dir = dir;
-        else this.dir = stringToDir(d);
+        else this.dir = valueToDir(d);
 
         this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
         this.tActual = 0;
@@ -443,18 +439,20 @@ i<html>
         this.maxY = Math.max(this.maxY, p.maxY);
     };*/
 
-    function stringToDir(s) {
-        if(s == "random") return RANDOM;
-        if(s == "diag1") return 3;
-        if(s == "diag2") return 1;
-        if(s == "vertical") return 8;
-        if(s == "horizontal") return 6;
+    function valueToDir(v) {
+        if(v == 0) return RANDOM;
+        if(v == 1) return 3;
+        if(v == 2) return 1;
+        if(v == 3) return 8;
+        if(v == 4) return 6;
     }
 
     function setDirs() {
 
-        for(var i = 0; i < checks.length; i++)
-            if(checks[i].checked) { 
+        pdirs = document.getElementsByName('pdir');
+
+        for(var i = 0; i < pdirs.length; i++)
+            if(pdirs[i].value > 0) { 
                 inds.push(i);
             }
 
@@ -463,7 +461,7 @@ i<html>
     particle.prototype.grow = function() {
       var fin = false;
       var l = this.contorno.length;
-      var maxim = (l/64)/this.rgrowth;
+      var maxim = 1;;//(l/64)/this.rgrowth;
 
       if(this.cangrow == 1 && this.tActual > this.tiempoDeVida) { this.morir(); return; }
       this.tActual++;
@@ -478,25 +476,25 @@ i<html>
         var fin = false;
         for(;;) {        
             if(inds[0]>=0 && r <= suma){
-                this.dir = stringToDir(checks[inds[0]].value);
+                this.dir = valueToDir(inds[0]);
                 break;
             }
             if(inds[1]>=0 && r > suma && r < suma+parseFloat(pdirs[inds[1]].value) ) {
-                this.dir = stringToDir(checks[inds[1]].value); 
+                this.dir = valueToDir(inds[1]); 
                 break;
             }
             suma += parseFloat(pdirs[inds[1]].value);
             if(inds[2]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[2]].value)) {
-                this.dir = stringToDir(checks[inds[2]].value);
+                this.dir = valueToDir(inds[2]);
                 break;
             }
             suma += parseFloat(pdirs[inds[2]].value);
             if(inds[3]>=0 && r >= suma && r < suma+parseFloat(pdirs[inds[3]].value)) {
-                this.dir = stringToDir(checks[inds[3]].value); 
+                this.dir = valueToDir(inds[3]); 
                 break;
             }
             if(inds[4]>=0 && r >= suma+parseFloat(pdirs[inds[3]].value)) {
-                this.dir = stringToDir(checks[inds[4]].value);
+                this.dir = valueToDir(inds[4]);
                 break;
             }
             alert("error en el programa"); 
@@ -596,7 +594,7 @@ i<html>
             var y = this.a[i].y;
             occupied[x+maxcoord*y].o = 0;
         }*/
-        if(this.a.length < 500) {
+        if(this.a.length < 300) {
             this.cangrow = 0;
         }
         /*for(var i = 0; i < this.contorno.length; i++)
@@ -880,7 +878,7 @@ i<html>
         var d2 = new Date();
         var t2 = d2.getTime();
 
-        $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000;
+        $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
 
 
         $('iteracion').innerHTML = it+1;
@@ -944,8 +942,6 @@ i<html>
             for(var j = 0; j < maxcoord; j++)
                 occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0);
 
-        checks = document.getElementsByName('dir');
-        pdirs = document.getElementsByName('pdir');
         setDirs();
 
         init_particles();
@@ -1123,15 +1119,15 @@ i<html>
         </table>
         <table>
             <tr><b>Crecimiento De las Part&iacute;culas</b>
-            <tr><td>Random<input name="dir" value="random" type="checkbox" /></td>
+            <tr><td>Random</td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
-            <tr><td>Diagonal 1<input name="dir" value="diag1" type="checkbox"  /></td>
+            <tr><td>Diagonal 1</td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
-            <tr><td>Diagonal 2<input name="dir" value="diag2" type="checkbox" checked /></td>
+            <tr><td>Diagonal 2</td>
                           <td><input name="pdir" type="text" value="100" size=3 /></td></tr>
-            <tr><td>Vertical<input name="dir" value="vertical" type="checkbox"  /></td>
+            <tr><td>Vertical</td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
-            <tr><td>Horizontal<input name="dir" value="horizontal" type="checkbox" /></td>
+            <tr><td>Horizontal</td>
                           <td><input name="pdir" type="text" value="0" size=3 /></td></tr>
         </table>
         <table>
