@@ -270,13 +270,18 @@ i<html>
         var c = Math.random();
         if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
         var d = 0.003921569; // 1/255
-        this.r =  pr || cf[0]*d;
-        this.g =  pg || cf[1]*d;
-        this.b =  pb || cf[2]*d;
+        if(pr >= 0) {
+            this.r =  pr;
+            this.g =  pg;
+            this.b =  pb;        }
+        else {
+            this.r = cf[0]*d;
+            this.g = cf[1]*d;
+            this.b = cf[2]*d;
+        }
         this.r += c*varcolor;
         this.g += c*varcolor;
         this.b += c*varcolor;
-
         this.i = i;
 
         this.a = [];
@@ -302,7 +307,7 @@ i<html>
         this.maxX = this.minX = x;
         this.maxY = this.minY = y;
 
-        this.add(x,y,[this.r,this.g,this.b]);
+        this.add(x,y);
        
     }
 
@@ -315,13 +320,11 @@ i<html>
         }
     }
 
-    particle.prototype.add = function(x,y,col) { 
+    particle.prototype.add = function(x,y) { 
         var r,g,b;
-
-        r = (this.r + col[0])/2;
-        g = (this.g + col[1])/2;
-        b = (this.b + col[2])/2;
-
+        r = this.r;
+        g = this.g;
+        b = this.b;
 
 
         this.a[this.a.length] = new point(x,y,this.i,r,g,b); 
@@ -401,9 +404,9 @@ i<html>
         occupied[pos].x = x;
 	    occupied[pos].y = y;
 	    occupied[pos].particle = this.i;
-	    occupied[pos].r = r;
-	    occupied[pos].g = g;
-	    occupied[pos].b = b;
+	    occupied[pos].r = (r + occupied[pos].r)/2;
+	    occupied[pos].g = (g + occupied[pos].g)/2;
+	    occupied[pos].b = (b + occupied[pos].b)/2;
     };
 
 
@@ -536,9 +539,7 @@ i<html>
 
                         var oc = occupied[nx+maxcoord*ny];
                         if(oc) {
-                            var col = [oc.r,oc.g,oc.b];
-
-                            this.add(nx,ny,col);
+                            this.add(nx,ny);
                             break;
                         }
 		               }
@@ -587,13 +588,13 @@ i<html>
 
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
-            particles[i] = new particle(px,py,i,1000,0,0,0,-1,true);
+            particles[i] = new particle(px,py,i,1000,-1,-1,-1,-1,true);
         }
 
     }
 
     particle.prototype.morir = function() {
-        if(this.a.length < 300) {
+        if(this.a.length < 20) {
             this.cangrow = 0;
         }
         /*for(var i = 0; i < this.contorno.length; i++)
@@ -613,7 +614,7 @@ i<html>
 
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
-            particles[i] = new particle(px,py,i,1000,0,0,0,-1,true);
+            particles[i] = new particle(px,py,i,1000,-1,-1,-1,-1,true);
         }
 
     }
@@ -632,7 +633,7 @@ i<html>
             var px = Math.ceil(x*maxcoord);
             var py = Math.ceil(y*maxcoord);
             if(px > 0 && py > 0 && px < maxcoord && py < maxcoord && !ocupada(px+maxcoord*py)) {
-                particles[ult] = new particle(px,py,ult,1000,0,0,0,-1,true);
+                particles[ult] = new particle(px,py,ult,1000,-1,-1,-1,-1,true);
                 ult++;
             }
         }
