@@ -444,11 +444,12 @@ particle.prototype.grow = function() {
         }
         c = (c+1)%(this.contorno.length-1);
     }
+
  // }
 
 };  
 
-particle.prototype.limpiarContorno = function() {
+/*particle.prototype.limpiarContorno = function() {
     var tempA = [];
     for(var i = 0; i < this.contorno.length; i++) {
         var cont = this.contorno[i];
@@ -459,7 +460,7 @@ particle.prototype.limpiarContorno = function() {
     }
     this.contorno = tempA;
     if(this.contorno.length == 0 ) this.cangrow = false;
-}
+}*/
 
 function esta (x,y,a) {
     for(var i = 0; i < a.length; i++)
@@ -521,8 +522,8 @@ function mover() {
        largoCont += pi.contorno.length;
     };
 
-    for(var i = 0; i < particles.length; i++)
-        if(pi.cangrow) particles[i].limpiarContorno();
+    /*for(var i = 0; i < particles.length; i++)
+        if(pi.cangrow) particles[i].limpiarContorno();*/
 }
 
 
