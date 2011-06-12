@@ -46,7 +46,7 @@ var inds = [];
 var pdirs;
 var vinds = [];
 
-var TIEMPO_VIDA = 600;
+var TIEMPO_VIDA = 200;
 
 var gl;
 function initGL(canvas) {
@@ -209,8 +209,8 @@ function particle(x,y,i,tiempo, pr,pg,pb, dir,cambia) {
     for(var ai = 0; ai < pdirs.length; ai++)
         if(pdirs[ai].value > 0) { d = ai; break; }
 
-    this.vy = -1;
-    this.vx = -1;
+    /*this.vy = -1;
+    this.vx = -1;*/
     if(dir >= 0)
         this.dir = dir;
     else this.dir = valueToDir(d);
@@ -378,7 +378,7 @@ function setDirs() {
 
     for(var i = 0; i < pdirs.length; i++)
         if(pdirs[i].value > 0) { 
-            inds.push(i);
+            inds.push(valueToDir(i));
             vinds.push(parseFloat(pdirs[i].value));
         }
 
@@ -399,7 +399,7 @@ particle.prototype.grow = function() {
         var suma = 0;
         for(var i = 0; i < vinds.length; i++) {      
             if(r >= suma && r < suma+vinds[i]){
-                this.dir = valueToDir(inds[i]);
+                this.dir = inds[i];
                 break;
             }
             suma += vinds[i];
@@ -751,7 +751,7 @@ function tick() {
 function ocupada(i) {
     if(!occupied[i]) { return false;}
     var p = occupied[i].particle;
-    return (p >= 0 && particles[p].cangrow);
+    return (p >= 0 && particles[p] && particles[p].cangrow);
 }
 
 
