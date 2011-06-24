@@ -524,14 +524,14 @@ function dibujarParticulas() {
     normals = [];
 
 
-    /*// dummy
+    // dummy
     gl.bindBuffer(gl.ARRAY_BUFFER, sceneTextureCoordBuffer);
     gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sceneTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, neheTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
-    // /dummy*/
+    // /dummy
 
 
     while(j< maxcoord2) {
@@ -645,10 +645,10 @@ function makeTexture() {
 
     init_variables();
 
-    /*if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
+    if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
         alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inicializado");
         return;
-    }*/
+    }
 
 
     var d = new Date();
