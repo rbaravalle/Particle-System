@@ -35,7 +35,7 @@
         float NH = dot(normal,halfv);
 
 
-        float uMaterialShininess = 4.0;
+        float uMaterialShininess = 32.0;
         float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 

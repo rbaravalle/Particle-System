@@ -56,6 +56,9 @@ var gl;
 
 var __3D = false;
 
+var radioA = 0.1;
+var radioB = 0.1;
+
 function aleat(x) {
     return Math.floor(Math.random()*x);
 }
@@ -205,12 +208,13 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
 
-    x = this.xi-1;
+    x = this.xi
     y = this.yi
-
     var cf = [];
     var c = Math.random();
-    if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
+    if(c <= parseFloat($('c1p').value)*0.01)
+//    if(t < Math.floor(TIEMPO/2))
+         cf = c1; else  {cf = c2 }
     var d = 0.003921569; // 1/255
 
     if(pr >= 0) {
@@ -238,7 +242,6 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
     this.tActual = 0;
 
-    //this.rgrowth = Math.ceil(Math.random()*2);
     this.cangrow = true; // crece?
 
     this.cambiaDir = cambia;
@@ -255,13 +258,14 @@ function s2(t1,t2) {
     if(t1.peso < t2.peso) return 1; else { if(t1.peso == t2.peso) return 0; else return -1; }
 }
 
-function fparam(x,y,xi,yi) {
-    return x//eval($('fparam').value);//x//0.1*Math.cos(2*Math.PI*t/TIEMPO_VIDA);
+function fparam(x,y,xi,yi,alfa) {
+    return 0.1*Math.pow(2,alfa)*Math.cos(alfa);
 }
 
-function gparam(x,y,xi,yi) {
-    return 4*x*x//eval($('gparam').value);// x*x//0.1*Math.sin(2*Math.PI*t/TIEMPO_VIDA);
+function gparam(x,y,xi,yi,alfa) {
+    return 0.1*Math.pow(2,alfa)*Math.sin(alfa);
 }
+
 
 particle.prototype.add = function(x,y) { 
     var r,g,b;
@@ -312,10 +316,17 @@ particle.prototype.add = function(x,y) {
     for(var i = 0; i < vals.length; i++) {
         var vxval = Math.abs(vals[i].x-this.xi)/maxcoord;
         var vyval = Math.abs(vals[i].y-this.yi)/maxcoord;
-        var actualDist = Math.abs(vxval-fparam(vxval,vyval,this.xi,this.yi)) +
-                         Math.abs(vyval-gparam(vxval,vyval,this.xi,this.yi));
-        if(actualDist < 0.01)
-            dists.push({"ind" : i, "dist" : actualDist});
+        var H = Math.sqrt(vxval*vxval + vyval*vyval);
+        //var alfa = Math.acos(vxval/H);
+        var alfa = Math.asin(vyval/H);
+
+        // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
+        var actualDist = Math.abs(vxval-fparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,alfa)) +
+                         Math.abs(vyval-gparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,alfa));
+
+        //actualDist = ;
+
+        dists.push({"ind" : i, "dist" : actualDist});
 
     }
 
@@ -334,6 +345,7 @@ particle.prototype.add = function(x,y) {
     }
 
     this.contorno.sort(s2);
+    this.contorno = [this.contorno[0]];
    
 };
 
@@ -439,9 +451,9 @@ function init_particles() {
 }
 
 particle.prototype.morir = function() {
-    if(this.t.length < 2000) {
+    //if(this.t.length < 2000) {
         this.cangrow = false;
-    }
+    //}
     /*for(var i = 0; i < this.contorno.length; i++)
         delete this.contorno[i];
     this.contorno = [];*/
@@ -469,12 +481,10 @@ function mover() {
        var pi = particles[i];
        if(pi.cangrow && pi.t.length > maxSize) pi.morir();
        if(pi.cangrow)
-           pi.grow(); // simulacion de crecimiento de la burbuja
+           pi.grow();
        largoCont += pi.contorno.length;
     };
 
-    /*for(var i = 0; i < particles.length; i++)
-        if(pi.cangrow) particles[i].limpiarContorno();*/
 }
 
 
