@@ -7,7 +7,7 @@
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="prototype.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
-<script type="text/javascript" src="particles.js"></script>
+<script type="text/javascript" src="particlesExperimental.js"></script>
 
 <script id="shader-fs" type="x-shader/x-fragment"> 
     #ifdef GL_ES
@@ -91,6 +91,7 @@
    <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
         <input type = "button" value = "Render!" style="width:300" onclick="stop = 1; tick();" />
         <input type = "button" value = "Animar/Parar" style="width:300" onclick="if(animar== false) animar=true; else animar =false;" />
+        <input type = "button" value = "3D/2D" style="width:300" onclick="if(__3D== false) __3D=true; else __3D =false;" />
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
@@ -99,7 +100,7 @@
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
-            <td>R</td><td>G</td><td>B</td><td>Porcentaje</td>
+            <td>R</td><td>G</td><td>B</td><td>A</td><td>Porcentaje</td>
             </th>
             <tr>
                    <td><b>Posici&oacute;n de la Luz</b></td>
@@ -112,6 +113,7 @@
                    <td><input id="c1r" type="text" value="229" size=5 /></td>
                    <td><input id="c1g" type="text" value="212" size=5 /></td>
                    <td><input id="c1b" type="text" value="182" size=5 /></td>
+                   <td><input id="c1a" type="text" value="0.5" size=5 /></td>
                    <td><input id="c1p" type="text" value="100" size=5 /></td>
             </tr>
             <tr>
@@ -119,6 +121,7 @@
                    <td><input id="c2r" type="text" value="158" size=5 /></td>
                    <td><input id="c2g" type="text" value="101" size=5 /></td>
                    <td><input id="c2b" type="text" value="14" size=5 /></td>
+                   <td><input id="c2a" type="text" value="0.5" size=5 /></td>
                     <td></td>
             </tr>
         </table>

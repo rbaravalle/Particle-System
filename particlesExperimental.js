@@ -54,6 +54,8 @@ var TIEMPO_VIDA;
 
 var gl;
 
+var __3D = false;
+
 function aleat(x) {
     return Math.floor(Math.random()*x);
 }
@@ -182,17 +184,18 @@ function setMatrixUniforms() {
 
 
 
-function point(x,y,i,r,g,b,p) {
+function point(x,y,i,r,g,b,a,p) {
     this.x = x
     this.y = y
     this.particle = i
     this.r = r || 0;
     this.g = g || 0;
     this.b = b || 0;
+    this.a = a || 0;
     this.peso = p || 100000; // a menor peso, mas cercano a la funcion parametrica
 }
 
-function particle(x,y,i,tiempo, pr,pg,pb, dir,cambia) {
+function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     var c = aleat(generadores.length);
     var gx = generadores[c].x;
@@ -209,23 +212,27 @@ function particle(x,y,i,tiempo, pr,pg,pb, dir,cambia) {
     var c = Math.random();
     if(c <= parseFloat($('c1p').value)*0.01) cf = c1; else  {cf = c2 }
     var d = 0.003921569; // 1/255
+
     if(pr >= 0) {
         this.r =  pr;
         this.g =  pg;
         this.b =  pb;
+        this.a =  pa;
     }
     else {
         this.r = cf[0]*d;
         this.g = cf[1]*d;
         this.b = cf[2]*d;
+        this.a = cf[3];
     }
     c = c*2-1;
     this.r += c*varcolor;
     this.g += c*varcolor;
     this.b += c*varcolor;
+
     this.i = i;
 
-    this.a = [];
+    this.t = [];
     this.contorno = [];
 
     this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
@@ -249,21 +256,34 @@ function s2(t1,t2) {
 }
 
 function fparam(x,y,xi,yi) {
-    return eval($('fparam').value);//0.1*Math.cos(2*Math.PI*t/TIEMPO_VIDA);
+    return x//eval($('fparam').value);//x//0.1*Math.cos(2*Math.PI*t/TIEMPO_VIDA);
 }
 
 function gparam(x,y,xi,yi) {
-    return eval($('gparam').value);//0.2*Math.sin(2*Math.PI*t/TIEMPO_VIDA);
+    return 4*x*x//eval($('gparam').value);// x*x//0.1*Math.sin(2*Math.PI*t/TIEMPO_VIDA);
 }
 
 particle.prototype.add = function(x,y) { 
     var r,g,b;
     var pos = x+y*maxcoord;
-    if(!occupied[pos]) occupied[pos] = new point(x,y,this.i,this.r,this.g,this.b);
 
-    r = (this.r + occupied[pos].r)/2;
-    g = (this.g + occupied[pos].g)/2;
-    b = (this.b + occupied[pos].b)/2;
+    // variacion de color por texel
+    var difc = (Math.random()*2-1)*(varparticlecolor);
+    var thisr = this.r + difc;
+    var thisg = this.g + difc;
+    var thisb = this.b + difc;
+
+    if(!occupied[pos]) occupied[pos] = new point(x,y,this.i,thisr,thisg,thisb,this.a);
+
+    // Alpha blending?
+    var op = occupied[pos];
+    var src_a = op.a;
+    var alp = this.a*(1-src_a);
+
+    a = src_a + alp;
+    r = (op.r*src_a + thisr*alp)/a;
+    g = (op.g*src_a + thisg*alp)/a;
+    b = (op.b*src_a + thisb*alp)/a;
 
 
     var pos = x+y*maxcoord;
@@ -273,8 +293,9 @@ particle.prototype.add = function(x,y) {
     occupied[pos].r = r;
     occupied[pos].g = g;
     occupied[pos].b = b;
+    occupied[pos].a = a;
 
-    this.a[this.a.length] = new point(x,y,this.i,r,g,b); 
+    this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
 
     var vals = [
         {'x':x-1,"y":y+1},
@@ -307,7 +328,7 @@ particle.prototype.add = function(x,y) {
 
         var pos = i+j*maxcoord;
         if( pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
-            this.contorno.push(new point(i,j,-1,r,g,b,dists[h].dist));
+            this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
             break;
         }
     }
@@ -411,14 +432,14 @@ function init_particles() {
             py = aleat(maxcoord);
         }
         if(px > 0 && py > 0 && px < maxcoord && py < maxcoord) {
-            particles.push(new particle(px,py,i,TIEMPO_VIDA,-1,-1,-1,-1,true));
+            particles.push(new particle(px,py,i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
         }
     }
 
 }
 
 particle.prototype.morir = function() {
-    if(this.a.length < 2000) {
+    if(this.t.length < 2000) {
         this.cangrow = false;
     }
     /*for(var i = 0; i < this.contorno.length; i++)
@@ -439,14 +460,14 @@ function mover() {
             py = aleat(maxcoord);
         }
         if(px > 0 && py > 0 && px < maxcoord && py < maxcoord) {
-            particles.push(new particle(px,py,ult++,TIEMPO_VIDA,-1,-1,-1,-1,true));
+            particles.push(new particle(px,py,ult++,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
         }
     }
 
     largoCont = 0;
     for(var i = 0; i < particles.length; i++) {
        var pi = particles[i];
-       if(pi.cangrow && pi.a.length > maxSize) pi.morir();
+       if(pi.cangrow && pi.t.length > maxSize) pi.morir();
        if(pi.cangrow)
            pi.grow(); // simulacion de crecimiento de la burbuja
        largoCont += pi.contorno.length;
@@ -464,7 +485,7 @@ function degToRad(degrees) {
 function dibujarParticulas() {
 
     // dibujamos en este buffer
-     gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
+    if(__3D)     gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 
     // comienzo de la escena
     gl.viewport(0, 0, maxcoord, maxcoord);
@@ -503,22 +524,22 @@ function dibujarParticulas() {
     normals = [];
 
 
-    // dummy
+    /*// dummy
     gl.bindBuffer(gl.ARRAY_BUFFER, sceneTextureCoordBuffer);
     gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sceneTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, neheTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
-    // /dummy
+    // /dummy*/
 
 
     while(j< maxcoord2) {
          var p = occupied[j];
          if(p) {
              vertices.push(p.x/(maxcoord),p.y/(maxcoord),0.0);
-             var c = (Math.random()*2-1)*(varparticlecolor);
-             colors.push(p.r+c,p.g+c,p.b+c,1.0);
+
+             colors.push(p.r,p.g,p.b,1.0);
              normals.push(0.0,0.0,1.0);
              cant++;
         }
@@ -553,13 +574,15 @@ function dibujarParticulas() {
     }
 
     // dibuja eso en esta textura
-    gl.bindTexture(gl.TEXTURE_2D, rttTexture);
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.bindTexture(gl.TEXTURE_2D, null);      
+    if(__3D) {
+        gl.bindTexture(gl.TEXTURE_2D, rttTexture);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);      
 
 
-    // liberamos
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        // liberamos
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
 }
 
 function dibujarEscena() {
@@ -622,10 +645,10 @@ function makeTexture() {
 
     init_variables();
 
-    if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
+    /*if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
         alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inicializado");
         return;
-    }
+    }*/
 
 
     var d = new Date();
@@ -651,8 +674,8 @@ function makeTexture() {
         delete occupied[i];
     for(var i = 0; i < particles.length; i++) {
         var pi = particles[i];
-        for(var j = 0; j < pi.a.length; j++)
-            delete pi.a[j];    
+        for(var j = 0; j < pi.t.length; j++)
+            delete pi.t[j];    
         delete particles[i];
     }
 
@@ -671,11 +694,13 @@ function animate() {
 
 function tick() {
     if(stop == 1) { makeTexture(); stop = 0;}
-    requestAnimFrame(tick);
-    if(!animar) return;
-    else {
-        dibujarEscena();
-        animate();
+    if(__3D) {
+        requestAnimFrame(tick);
+        if(!animar) return;
+        else {
+            dibujarEscena();
+            animate();
+        }
     }
 }
 
@@ -691,8 +716,10 @@ function init_variables() {
     TIEMPO_VIDA = $('tiempoVida').value;
     distG = parseFloat($('distG').value);
     cantG = parseFloat($('cantG').value);
-    c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value)];
-    c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value)];
+    c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value),
+            parseFloat($('c1a').value)];
+    c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value),
+            parseFloat($('c2a').value)];
 
     varcolor = parseFloat($('varcolor').value);
     varparticlecolor = parseFloat($('varparticlecolor').value);
@@ -702,7 +729,7 @@ function init_variables() {
     occupied = [];
     for(var i = 0; i < maxcoord; i++)
         for(var j = 0; j < maxcoord; j++)
-            occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0);
+            occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0,0);
 
     generadores = [];
     for(var i = 0; i < cantG; i++)
