@@ -511,24 +511,13 @@ function mover() {
     for(var x = 0; x < maxcoord; x++) {
         for(var y = 0; y < maxcoord; y++) {
 
-            var vals = [
-                {'x':x-1,"y":y+1},
-                {'x':x,"y":y+1},
-                {'x':x+1,"y":y+1},
-                {'x':x-1,"y":y},
-                {'x':x+1,"y":y},
-                {'x':x-1,"y":y-1},
-                {'x':x,"y":y-1},
-                {'x':x+1,"y":y-1}
-            ];
-
             var pos = x+y*maxcoord;
             var k = 0.25;
-            var old = occupied[pos].t[DATA]// temperatures[pos];
-            var top = vals[1].x+vals[1].y*maxcoord;
-            var left = vals[3].x+vals[3].y*maxcoord;
-            var right = vals[5].x+vals[5].y*maxcoord;
-            var bottom = vals[7].x+vals[7].y*maxcoord;
+            var old = occupied[pos].t[DATA]
+            var top = pos + maxcoord;
+            var left = pos - 1;
+            var right = pos - maxcoord - 1;
+            var bottom = pos + 1 - maxcoord;
 
             if(bottom > 0 && bottom < maxcoord2 &&
                top > 0 && top < maxcoord2 &&
