@@ -632,7 +632,7 @@ function dibujarParticulas() {
              if(p) {
                  vertices.push(p.x/(maxcoord),p.y/(maxcoord),0.0);
 
-                 colors.push(p.t[DATA],p.t[DATA],p.t[DATA],1.0);
+                 colors.push(p.r+p.t[DATA],p.g+p.t[DATA],p.b+p.t[DATA],1.0);
                  normals.push(0.0,0.0,1.0);
                  cant++;
             }
@@ -829,8 +829,8 @@ function init_variables() {
     generadores = [];
     for(var i = 0; i < cantG; i++) {
         generadores.push({"x":aleat(maxcoord), "y": aleat(maxcoord)});
-        occupied[generadores[i].x + generadores[i].y*maxcoord].t[DATA] = 250.0; // temperatura
-        occupied[generadores[i].x + generadores[i].y*maxcoord].t[BUFFER] = 250.0; // temperatura
+        occupied[generadores[i].x + generadores[i].y*maxcoord].t[DATA] = 2512.0; // temperatura
+        occupied[generadores[i].x + generadores[i].y*maxcoord].t[BUFFER] = 2512.0; // temperatura
     }
 
     init_particles();
