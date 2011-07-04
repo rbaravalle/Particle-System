@@ -43,30 +43,30 @@ var distG;
 var cantG; // cantidad de Generadores
 
 // Arreglos de funciones parametricas
-var fs = [function(x,y,alfa) { // circulo
-    return this.radioA*Math.cos(alfa);
+var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
+    return xc+radio*Math.cos(alfa);
 },
-function(x,y,alfa) { return 0;}, // vertical
-function(x,y,alfa) { // elipse
-    return this.radioA*Math.cos(alfa)
+function(x,y,xc,yc,radio,alfa) { return 0;}, // vertical
+function(x,y,xc,yc,radio,alfa) { // elipse
+    return xc+radio*Math.cos(alfa)
 },
-function(x,y,alfa) { // horizontal
+function(x,y,xc,yc,radio,alfa) { // horizontal
     return x;
 },
-function(x,y,alfa) { // random
+function(x,y,xc,yc,radio,alfa) { // random
     return x;
 } ];
 
-var gs = [function(x,y,alfa) {
-    return this.radioA*Math.sin(alfa);
-}, function(x,y,alfa) { return y;},
-function(x,y,alfa) {
-    return this.radioB*Math.sin(alfa)
+var gs = [function(x,y,xc,yc,radio,alfa) {
+    return yc+radio*Math.sin(alfa);
+}, function(x,y,xc,yc,radio,alfa) { return y;},
+function(x,y,xc,yc,radio,alfa) {
+    return yc+radio*Math.sin(alfa);
 },
-function(x,y,alfa) {
+function(x,y,xc,yc,radio,alfa) {
     return 0;
 },
-function(x,y,alfa) {
+function(x,y,xc,yc,radio,alfa) {
     return y;
 } ];
 
@@ -92,7 +92,7 @@ var gl;
 var __3D = false;
 
 var radioA = 0.1;
-var radioB = 0.1;
+var radioB = 0.15;
 
 function aleat(x) {
     return Math.floor(Math.random()*x);
@@ -239,14 +239,14 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gx = generadores[c].x;
     var gy = generadores[c].y;
     
-    this.dir = aleat(10);
-    if(this.dir > 8) this.dir = RANDOM;
+    this.dir = CIRCULO;
+    /*if(this.dir > 8) this.dir = CIRCULO;
     else {
         if(this.dir > 5) {
-            this.dir = RANDOM;
+            this.dir = VERTICAL;
         }
         else { this.dir = RANDOM; }
-    }
+    }*/
 
     this.fparam = fs[this.dir];
     this.gparam = gs[this.dir];
@@ -255,11 +255,12 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
 
-    this.radioA = this.radioB = 0.02+Math.random()*0.1;
+    this.radioA = 0.02+Math.random()*0.2;
+    this.radioB = 0.02+Math.random()*0.2;
 
     // donde comienza la particula
-    if(this.dir == CIRCULO) 
-        this.initX = this.xi - Math.floor(this.radioA*maxcoord);
+    if(this.dir == CIRCULO || this.dir == ELIPSE) 
+        this.initX = this.xi + Math.floor(this.radioA*maxcoord);
     else this.initX = this.xi;
 
     this.initY = this.yi;
@@ -364,27 +365,44 @@ particle.prototype.add = function(x,y) {
 
     if(this.dir != RANDOM) {
 
-        var dists = [];
+        /*var dists = [];
         for(var i = 0; i < vals.length; i++) {
             var vxval = Math.abs(vals[i].x-this.xi)/maxcoord;
             var vyval = Math.abs(vals[i].y-this.yi)/maxcoord;
             var H = Math.sqrt(vxval*vxval + vyval*vyval);
-            //var alfa = Math.acos(vxval/H);
-            var alfa = Math.asin(vyval/H);
+
+            var alfa;
+            if(H == 0) alfa = 0; else alfa = Math.asin(vyval/H);
 
             // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
-            var actualDist = Math.abs(vxval-this.fparam(vxval,vyval,alfa)) +
-                             Math.abs(vyval-this.gparam(vxval,vyval,alfa));
-
-            //actualDist = ;
+            var xreal = Math.abs(vals[i].x-this.xi)/maxcoord;
+            var yreal = Math.abs(vals[i].y-this.yi)/maxcoord;
+            var actualDist = 
+                Math.abs(xreal-
+               this.fparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)) +
+                Math.abs(yreal-
+               this.gparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa));
 
             dists.push({"ind" : i, "dist" : actualDist});
 
-        }
+        }*/
 
-        dists = dists.sort(s);
+        // Math.floor(this.xi+this.radioA*Math.cos(2*Math.PI*t/TIEMPO_VIDA)*maxcoord)
+        var alfa = 2*Math.PI*t/200;
 
-        for(var h = 0; h < dists.length; h++) {
+        this.contorno.push(new point(
+            Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
+            Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
+            -1,r,g,b,0,-1));
+
+        this.contorno.push(new point(vals[aleat(vals.length)].x,vals[aleat(vals.length)].y,-1,r,g,b,0,-1));
+
+
+
+
+//        dists = dists.sort(s);
+
+        /*for(var h = 0; h < dists.length; h++) {
             var indActual = dists[h].ind;
             var i = vals[indActual].x;
             var j = vals[indActual].y;
@@ -395,10 +413,10 @@ particle.prototype.add = function(x,y) {
                 this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
                 break;
             }
-        }
+        }*/
 
-        this.contorno.sort(s2);
-        this.contorno = [this.contorno[0]];
+        //this.contorno.sort(s2);
+        //this.contorno = [this.contorno[0]];
    
     }
     else {
