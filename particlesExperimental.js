@@ -42,6 +42,41 @@ var animar = true; // frenar/continuar la animacion
 var distG;
 var cantG; // cantidad de Generadores
 
+// Arreglos de funciones parametricas
+var fs = [function(x,y,alfa) { // circulo
+    return this.radioA*Math.cos(alfa);
+},
+function(x,y,alfa) { return 0;}, // vertical
+function(x,y,alfa) { // elipse
+    return this.radioA*Math.cos(alfa)
+},
+function(x,y,alfa) { // horizontal
+    return x;
+},
+function(x,y,alfa) { // random
+    return x;
+} ];
+
+var gs = [function(x,y,alfa) {
+    return this.radioA*Math.sin(alfa);
+}, function(x,y,alfa) { return y;},
+function(x,y,alfa) {
+    return this.radioB*Math.sin(alfa)
+},
+function(x,y,alfa) {
+    return 0;
+},
+function(x,y,alfa) {
+    return y;
+} ];
+
+// defs
+var CIRCULO = 0;
+var VERTICAL = 1;
+var ELIPSE = 2;
+var HORIZONTAL = 3;
+var RANDOM = 4;
+
 // indices elegidos por el usuario
 //var inds = [];
 // porcentajes para cada direccion
@@ -204,12 +239,34 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gx = generadores[c].x;
     var gy = generadores[c].y;
     
+    this.dir = aleat(10);
+    if(this.dir > 8) this.dir = RANDOM;
+    else {
+        if(this.dir > 5) {
+            this.dir = RANDOM;
+        }
+        else { this.dir = RANDOM; }
+    }
+
+    this.fparam = fs[this.dir];
+    this.gparam = gs[this.dir];
+
 
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
 
-    x = this.xi
-    y = this.yi
+    this.radioA = this.radioB = 0.02+Math.random()*0.1;
+
+    // donde comienza la particula
+    if(this.dir == CIRCULO) 
+        this.initX = this.xi - Math.floor(this.radioA*maxcoord);
+    else this.initX = this.xi;
+
+    this.initY = this.yi;
+
+    x = this.initX;
+    y = this.initY;
+
     var cf = [];
     var c = Math.random();
     if(c <= parseFloat($('c1p').value)*0.01)
@@ -246,6 +303,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     this.cambiaDir = cambia;
 
+
     this.add(x,y);
    
 }
@@ -257,15 +315,6 @@ function s(t1,t2) {
 function s2(t1,t2) {
     if(t1.peso < t2.peso) return 1; else { if(t1.peso == t2.peso) return 0; else return -1; }
 }
-
-function fparam(x,y,xi,yi,alfa) {
-    return 0.1*Math.pow(2,alfa)*Math.cos(alfa);
-}
-
-function gparam(x,y,xi,yi,alfa) {
-    return 0.1*Math.pow(2,alfa)*Math.sin(alfa);
-}
-
 
 particle.prototype.add = function(x,y) { 
     var r,g,b;
@@ -301,6 +350,7 @@ particle.prototype.add = function(x,y) {
 
     this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
 
+    // texels en el contorno del punto agregado
     var vals = [
         {'x':x-1,"y":y+1},
         {'x':x,"y":y+1},
@@ -312,41 +362,55 @@ particle.prototype.add = function(x,y) {
         {'x':x+1,"y":y-1}
     ];
 
-    var dists = [];
-    for(var i = 0; i < vals.length; i++) {
-        var vxval = Math.abs(vals[i].x-this.xi)/maxcoord;
-        var vyval = Math.abs(vals[i].y-this.yi)/maxcoord;
-        var H = Math.sqrt(vxval*vxval + vyval*vyval);
-        //var alfa = Math.acos(vxval/H);
-        var alfa = Math.asin(vyval/H);
+    if(this.dir != RANDOM) {
 
-        // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
-        var actualDist = Math.abs(vxval-fparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,alfa)) +
-                         Math.abs(vyval-gparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,alfa));
+        var dists = [];
+        for(var i = 0; i < vals.length; i++) {
+            var vxval = Math.abs(vals[i].x-this.xi)/maxcoord;
+            var vyval = Math.abs(vals[i].y-this.yi)/maxcoord;
+            var H = Math.sqrt(vxval*vxval + vyval*vyval);
+            //var alfa = Math.acos(vxval/H);
+            var alfa = Math.asin(vyval/H);
 
-        //actualDist = ;
+            // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
+            var actualDist = Math.abs(vxval-this.fparam(vxval,vyval,alfa)) +
+                             Math.abs(vyval-this.gparam(vxval,vyval,alfa));
 
-        dists.push({"ind" : i, "dist" : actualDist});
+            //actualDist = ;
 
-    }
+            dists.push({"ind" : i, "dist" : actualDist});
 
-    dists = dists.sort(s);
-
-    for(var h = 0; h < dists.length; h++) {
-        var indActual = dists[h].ind;
-        var i = vals[indActual].x;
-        var j = vals[indActual].y;
-
-        var pos = i+j*maxcoord;
-        if( pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
-            this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
-            break;
         }
-    }
 
-    this.contorno.sort(s2);
-    this.contorno = [this.contorno[0]];
+        dists = dists.sort(s);
+
+        for(var h = 0; h < dists.length; h++) {
+            var indActual = dists[h].ind;
+            var i = vals[indActual].x;
+            var j = vals[indActual].y;
+
+            var pos = i+j*maxcoord;
+            if( pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
+                // solo un nuevo texel al contorno
+                this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
+                break;
+            }
+        }
+
+        this.contorno.sort(s2);
+        this.contorno = [this.contorno[0]];
    
+    }
+    else {
+        var next = aleat(vals.length);
+        var next2 = aleat(vals.length);
+        while(next2 == next)
+            next2 = aleat(vals.length);
+        // la distancia no es importante
+        // no se trata de matchear ninguna funcion parametrica
+        this.contorno.push(new point(vals[next].x,vals[next].y,-1,r,g,b,0,-1));
+        this.contorno.push(new point(vals[next2].x,vals[next2].y,-1,r,g,b,0,-1));
+    }
 };
 
 
@@ -390,10 +454,8 @@ function valueToDir(v) {
 }
 
 particle.prototype.grow = function() {
-
-  if(this.cangrow && this.tActual > this.tiempoDeVida) { this.morir(); return; }
-  this.tActual++;
-
+    if(this.cangrow && this.tActual > this.tiempoDeVida) { this.morir(); return; }
+    this.tActual++;
 
     c = 0;
     
@@ -554,7 +616,7 @@ function dibujarParticulas() {
              cant++;
         }
         j++;
-        if(cant > 1 || j >= maxcoord2) {
+        if(cant > 512 || j >= maxcoord2) {
             gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
             triangleVertexPositionBuffer.itemSize = 3;
