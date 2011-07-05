@@ -76,6 +76,9 @@ function(x,y,xc,yc,radio,alfa) { // espiral
     return yc+radio*Math.sin(alfa)*alfa/4;
 } ];
 
+var d;
+var t1;
+
 // defs
 var CIRCULO = 0;
 var VERTICAL = 1;
@@ -91,9 +94,6 @@ var TIEMPO_VIDA;
 var gl;
 
 var __3D = false;
-
-var radioA = 0.1;
-var radioB = 0.15;
 
 function aleat(x) {
     return Math.floor(Math.random()*x);
@@ -240,13 +240,14 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gx = generadores[c].x;
     var gy = generadores[c].y;
     
+    //this.dir = RANDOM; 
     this.dir = aleat(6);
-    /*if(this.dir > 8) this.dir = ELIPSE;
+    /*if(this.dir > 7) this.dir = RANDOM;
     else {
-        if(this.dir > 5) {
-            this.dir = CIRCULO;
+        if(this.dir > 4) {
+            this.dir = VERTICAL;
         }
-        else { this.dir = ESPIRAL; }
+        else { this.dir = HORIZONTAL; }
     }*/
 
     this.fparam = fs[this.dir];
@@ -414,10 +415,6 @@ particle.prototype.add = function(x,y) {
             Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
             Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
             -1,r,g,b,0,-1));
-
-
-        //this.contorno.sort(s2);
-        //this.contorno = [this.contorno[0]];
    
     }
     else {
@@ -611,7 +608,7 @@ function dibujarParticulas() {
 
     // dummy
     gl.bindBuffer(gl.ARRAY_BUFFER, sceneTextureCoordBuffer);
-    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, sceneTextureCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(shaderProgram.textureCoordAttribute, 2, gl.FLOAT, false, 0, 0);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, neheTexture);
@@ -725,10 +722,10 @@ function dibujarEscena() {
 }
 
 
-function makeTexture() {
+/*function makeTexture() {
 
 
-    init_variables();
+    //init_variables();
 
     if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
         alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inicializado");
@@ -736,12 +733,10 @@ function makeTexture() {
     }
 
 
-    var d = new Date();
-    var t1 = d.getTime();
+    d = new Date();
+    t1 = d.getTime();
     mover();
-    for(var it = 0; it < TIEMPO-1 ; it++) {
-        if(largoCont > 0) { t++;  mover(); } else break;
-    }
+
     var d2 = new Date();
     var t2 = d2.getTime();
 
@@ -753,7 +748,7 @@ function makeTexture() {
     $('contorno').innerHTML = largoCont;
     //$('contorno').innerHTML = cantFor;
 
-    dibujarParticulas();
+    //dibujarParticulas();
 
     for(var i = 0; i < maxcoord2; i++)
         delete occupied[i];
@@ -764,7 +759,7 @@ function makeTexture() {
         delete particles[i];
     }
 
-}
+}*/
 
 function animate() {
     var timeNow = new Date().getTime();
@@ -778,15 +773,37 @@ function animate() {
 
 
 function tick() {
-    if(stop == 1) { makeTexture(); stop = 0;}
-    if(__3D) {
-        requestAnimFrame(tick);
-        if(!animar) return;
-        else {
-            dibujarEscena();
-            animate();
+        if(stop == 1) { // recalcular textura
+            stop = 0;
+            for(var i = 0; i < maxcoord2; i++)
+                delete occupied[i];
+            for(var i = 0; i < particles.length; i++) {
+                var pi = particles[i];
+                for(var j = 0; j < pi.t.length; j++)
+                    delete pi.t[j];    
+                delete particles[i];
+            }
+            init_variables();
         }
-    }
+
+        if(animar) { 
+            mover(); t++;
+
+            if(t%20 == 0) {
+                dibujarParticulas();
+                if(__3D) { dibujarEscena(); animate(); } 
+            }
+            
+            if(t < TIEMPO -1) requestAnimFrame(tick);
+
+            var d2 = new Date();
+            var t2 = d2.getTime();
+
+            $('iteracion').innerHTML = t;
+            $('contorno').innerHTML = largoCont;
+            $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
+            $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
+        }
 }
 
 function ocupada(i) {
@@ -821,6 +838,9 @@ function init_variables() {
         generadores.push({"x":aleat(maxcoord), "y": aleat(maxcoord)});
 
     init_particles();
+
+    d = new Date();
+    t1 = d.getTime();
 
 }
 
@@ -945,6 +965,8 @@ function webGLStart() {
     initTextureFramebuffer();
     initShaders();
     initTexture();
+    init_variables();
+
     //initBuffers();
 
 
