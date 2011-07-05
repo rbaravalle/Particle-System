@@ -19,7 +19,6 @@ var occupied;
 
 var t = 0;
 var particles;
-//var max_it_cambio;
 
 var rttFramebuffer;
 var rttTexture;
@@ -46,28 +45,35 @@ var cantG; // cantidad de Generadores
 var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
     return xc+radio*Math.cos(alfa);
 },
-function(x,y,xc,yc,radio,alfa) { return 0;}, // vertical
+function(x,y,xc,yc,radio,alfa) { return x;}, // vertical
 function(x,y,xc,yc,radio,alfa) { // elipse
     return xc+radio*Math.cos(alfa)
 },
 function(x,y,xc,yc,radio,alfa) { // horizontal
-    return x;
+    return xc+t/maxcoord;
 },
 function(x,y,xc,yc,radio,alfa) { // random
     return x;
+},
+function(x,y,xc,yc,radio,alfa) { // espiral
+    return xc+radio*Math.cos(alfa)*alfa/4;
 } ];
 
-var gs = [function(x,y,xc,yc,radio,alfa) {
-    return yc+radio*Math.sin(alfa);
-}, function(x,y,xc,yc,radio,alfa) { return y;},
-function(x,y,xc,yc,radio,alfa) {
+var gs = [function(x,y,xc,yc,radio,alfa) { // circulo
     return yc+radio*Math.sin(alfa);
 },
-function(x,y,xc,yc,radio,alfa) {
-    return 0;
+function(x,y,xc,yc,radio,alfa) { return yc+t/maxcoord;}, // vertical
+function(x,y,xc,yc,radio,alfa) { // elipse
+    return yc+radio*Math.sin(alfa);
 },
-function(x,y,xc,yc,radio,alfa) {
+function(x,y,xc,yc,radio,alfa) { // horizontal
+    return yc;
+},
+function(x,y,xc,yc,radio,alfa) { // random
     return y;
+},
+function(x,y,xc,yc,radio,alfa) { // espiral
+    return yc+radio*Math.sin(alfa)*alfa/4;
 } ];
 
 // defs
@@ -76,6 +82,7 @@ var VERTICAL = 1;
 var ELIPSE = 2;
 var HORIZONTAL = 3;
 var RANDOM = 4;
+var ESPIRAL = 5;
 
 // indices elegidos por el usuario
 //var inds = [];
@@ -230,7 +237,7 @@ function point(x,y,i,r,g,b,a,p) {
     this.g = g || 0;
     this.b = b || 0;
     this.a = a || 0;
-    this.peso = p || 100000; // a menor peso, mas cercano a la funcion parametrica
+    //this.peso = p || 100000; // a menor peso, mas cercano a la funcion parametrica
 }
 
 function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
@@ -239,7 +246,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gx = generadores[c].x;
     var gy = generadores[c].y;
     
-    this.dir = CIRCULO;
+    this.dir = aleat(6);
     /*if(this.dir > 8) this.dir = CIRCULO;
     else {
         if(this.dir > 5) {
@@ -258,8 +265,10 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.radioA = 0.02+Math.random()*0.2;
     this.radioB = 0.02+Math.random()*0.2;
 
+    if(this.dir == CIRCULO) this.radioA = this.radioB;
+
     // donde comienza la particula
-    if(this.dir == CIRCULO || this.dir == ELIPSE) 
+    if(this.dir == CIRCULO || this.dir == ELIPSE || this.dir == ESPIRAL) 
         this.initX = this.xi + Math.floor(this.radioA*maxcoord);
     else this.initX = this.xi;
 
@@ -388,14 +397,15 @@ particle.prototype.add = function(x,y) {
         }*/
 
         // Math.floor(this.xi+this.radioA*Math.cos(2*Math.PI*t/TIEMPO_VIDA)*maxcoord)
-        var alfa = 2*Math.PI*t/200;
+        var alfa = 2*Math.PI*t/500;
 
         this.contorno.push(new point(
             Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
             Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
             -1,r,g,b,0,-1));
 
-        this.contorno.push(new point(vals[aleat(vals.length)].x,vals[aleat(vals.length)].y,-1,r,g,b,0,-1));
+        var al = aleat(vals.length);
+        this.contorno.push(new point(vals[al].x,vals[al].y,-1,r,g,b,0,-1));
 
 
 
@@ -531,12 +541,7 @@ function init_particles() {
 }
 
 particle.prototype.morir = function() {
-    //if(this.t.length < 2000) {
-        this.cangrow = false;
-    //}
-    /*for(var i = 0; i < this.contorno.length; i++)
-        delete this.contorno[i];
-    this.contorno = [];*/
+    this.cangrow = false;
 }
 
 // una iteracion del algoritmo
@@ -958,4 +963,5 @@ function webGLStart() {
     gl.enable(gl.DEPTH_TEST);
 
 }
+
 
