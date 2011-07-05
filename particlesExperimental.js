@@ -57,6 +57,9 @@ function(x,y,xc,yc,radio,alfa) { // random
 },
 function(x,y,xc,yc,radio,alfa) { // espiral
     return xc+radio*Math.cos(alfa)*alfa/4;
+},
+function(x,y,xc,yc,radio,alfa) { // x ^ 2
+    return x;
 } ];
 
 var gs = [function(x,y,xc,yc,radio,alfa) { // circulo
@@ -74,6 +77,9 @@ function(x,y,xc,yc,radio,alfa) { // random
 },
 function(x,y,xc,yc,radio,alfa) { // espiral
     return yc+radio*Math.sin(alfa)*alfa/4;
+},
+function(x,y,xc,yc,radio,alfa) { // x^2
+    return x*x;
 } ];
 
 var d;
@@ -86,6 +92,7 @@ var ELIPSE = 2;
 var HORIZONTAL = 3;
 var RANDOM = 4;
 var ESPIRAL = 5;
+var POLINOMIO = 6;
 
 var generadores;
 
@@ -241,13 +248,13 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = aleat(6);
+    this.dir = RANDOM// aleat(10);
     /*if(this.dir > 7) this.dir = RANDOM;
     else {
         if(this.dir > 4) {
-            this.dir = VERTICAL;
+            this.dir = HORIZONTAL;
         }
-        else { this.dir = HORIZONTAL; }
+        else { this.dir = RANDOM; }
     }*/
 
     this.fparam = fs[this.dir];
@@ -373,7 +380,8 @@ particle.prototype.add = function(x,y) {
 
         var agrego = false;
 
-        if(this.dir != VERTICAL && this.dir != HORIZONTAL) {
+        if(this.dir == ESPIRAL || this.dir == CIRCULO || this.dir == ELIPSE
+        || this.dir==POLINOMIO) {
             var dists = [];
             for(var i = 0; i < vals.length; i++) {
 
@@ -383,7 +391,7 @@ particle.prototype.add = function(x,y) {
                 var actualDist = 
                     Math.abs(xreal-
                    this.fparam(xreal,xreal,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)) +
-                    Math.abs(yreal-
+                    Math.abs(yreal-this.yi/maxcoord-
                    this.gparam(xreal,yreal,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa));
                 
                 dists.push({"ind" : i, "dist" : actualDist});
@@ -411,11 +419,12 @@ particle.prototype.add = function(x,y) {
             }
         }
 
-        this.contorno.push(new point(
-            Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
-            Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
-            -1,r,g,b,0,-1));
-   
+        //if(this.dir != POLINOMIO) {
+            this.contorno.push(new point(
+                Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
+                Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
+                -1,r,g,b,0,-1));
+       // }   
     }
     else {
         var next = aleat(vals.length);
@@ -789,7 +798,7 @@ function tick() {
         if(animar) { 
             mover(); t++;
 
-            if(t%20 == 0) {
+            if(t%30 == 0) {
                 dibujarParticulas();
                 if(__3D) { dibujarEscena(); animate(); } 
             }

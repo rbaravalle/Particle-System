@@ -35,7 +35,7 @@
         float NH = dot(normal,halfv);
 
 
-        float uMaterialShininess = 32.0;
+        float uMaterialShininess = 64.0;
         float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 
@@ -49,7 +49,7 @@
             texColor = vec4(texColor.rgb*spec, texColor.a);
         }
         else {
-            texColor = vColor;//vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
+            texColor = vec4(vColor.r-0.1,vColor.g-0.1,vColor.b-0.1,vColor.a);//vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
         }
         gl_FragColor = texColor;
 
@@ -114,14 +114,14 @@
                    <td><input id="c1g" type="text" value="212" size=5 /></td>
                    <td><input id="c1b" type="text" value="182" size=5 /></td>
                    <td><input id="c1a" type="text" value="0.5" size=5 /></td>
-                   <td><input id="c1p" type="text" value="100" size=5 /></td>
+                   <td><input id="c1p" type="text" value="0" size=5 /></td>
             </tr>
             <tr>
                    <td><b>Color 2</b></td>
-                   <td><input id="c2r" type="text" value="158" size=5 /></td>
-                   <td><input id="c2g" type="text" value="101" size=5 /></td>
-                   <td><input id="c2b" type="text" value="14" size=5 /></td>
-                   <td><input id="c2a" type="text" value="0.5" size=5 /></td>
+                   <td><input id="c2r" type="text" value="102" size=5 /></td>
+                   <td><input id="c2g" type="text" value="55" size=5 /></td>
+                   <td><input id="c2b" type="text" value="35" size=5 /></td>
+                   <td><input id="c2a" type="text" value="0.1" size=5 /></td>
                     <td></td>
             </tr>
         </table>
@@ -133,31 +133,25 @@
                   <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="1000" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="0" size=5 /></td>
+                  <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="10" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="10000" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.1" size=5 /></td>
+                  <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.3" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.1" size=5 /></td>
+                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.15" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Tiempo de Vida</b> <input id="tiempoVida" type="text" value="1000" size=7 /></td>
+                  <td> <b>Tiempo de Vida</b> <input id="tiempoVida" type="text" value="500" size=7 /></td>
             </tr>
             <tr>
                   <td> <b>Distancia de la part&iacute;cula al Generador</b> <input id="distG" type="text" value="0.2" size=7 /></td>
             </tr>
             <tr>
-                  <td> <b>Cantidad de Generadores</b> <input id="cantG" type="text" value="20" size=4 /></td>
-            </tr>
-            <tr>
-                  <td> <b>Funci&oacute;n param&eacute;trica f</b> <input id="fparam" type="text" value="x" size=40 /></td>
-            </tr>
-            <tr>
-                  <td> <b>Funci&oacute;n param&eacute;trica g</b> <input id="gparam" type="text" value="4*x*x" size=40 /></td>
+                  <td> <b>Cantidad de Generadores</b> <input id="cantG" type="text" value="30" size=4 /></td>
             </tr>
         </table>
        
