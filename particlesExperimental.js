@@ -50,7 +50,7 @@ function(x,y,xc,yc,radio,alfa) { // elipse
     return xc+radio*Math.cos(alfa)
 },
 function(x,y,xc,yc,radio,alfa) { // horizontal
-    return xc+t/maxcoord;
+    return x+1/maxcoord;
 },
 function(x,y,xc,yc,radio,alfa) { // random
     return x;
@@ -62,12 +62,12 @@ function(x,y,xc,yc,radio,alfa) { // espiral
 var gs = [function(x,y,xc,yc,radio,alfa) { // circulo
     return yc+radio*Math.sin(alfa);
 },
-function(x,y,xc,yc,radio,alfa) { return yc+t/maxcoord;}, // vertical
+function(x,y,xc,yc,radio,alfa) { return y+1/maxcoord;}, // vertical
 function(x,y,xc,yc,radio,alfa) { // elipse
     return yc+radio*Math.sin(alfa);
 },
 function(x,y,xc,yc,radio,alfa) { // horizontal
-    return yc;
+    return y;
 },
 function(x,y,xc,yc,radio,alfa) { // random
     return y;
@@ -83,12 +83,6 @@ var ELIPSE = 2;
 var HORIZONTAL = 3;
 var RANDOM = 4;
 var ESPIRAL = 5;
-
-// indices elegidos por el usuario
-//var inds = [];
-// porcentajes para cada direccion
-//var pdirs;
-//var vinds = [];
 
 var generadores;
 
@@ -237,7 +231,7 @@ function point(x,y,i,r,g,b,a,p) {
     this.g = g || 0;
     this.b = b || 0;
     this.a = a || 0;
-    //this.peso = p || 100000; // a menor peso, mas cercano a la funcion parametrica
+    this.peso = p || 100000; // a menor peso, mas cercano a la funcion parametrica
 }
 
 function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
@@ -247,12 +241,12 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     this.dir = aleat(6);
-    /*if(this.dir > 8) this.dir = CIRCULO;
+    /*if(this.dir > 8) this.dir = ELIPSE;
     else {
         if(this.dir > 5) {
-            this.dir = VERTICAL;
+            this.dir = CIRCULO;
         }
-        else { this.dir = RANDOM; }
+        else { this.dir = ESPIRAL; }
     }*/
 
     this.fparam = fs[this.dir];
@@ -312,7 +306,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.cangrow = true; // crece?
 
     this.cambiaDir = cambia;
-
+    this.tInit = t;
 
     this.add(x,y);
    
@@ -374,56 +368,53 @@ particle.prototype.add = function(x,y) {
 
     if(this.dir != RANDOM) {
 
-        /*var dists = [];
-        for(var i = 0; i < vals.length; i++) {
-            var vxval = Math.abs(vals[i].x-this.xi)/maxcoord;
-            var vyval = Math.abs(vals[i].y-this.yi)/maxcoord;
-            var H = Math.sqrt(vxval*vxval + vyval*vyval);
+        var alfa = 2*Math.PI*(t-this.tInit)/TIEMPO_VIDA;
 
-            var alfa;
-            if(H == 0) alfa = 0; else alfa = Math.asin(vyval/H);
+        var agrego = false;
 
-            // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
-            var xreal = Math.abs(vals[i].x-this.xi)/maxcoord;
-            var yreal = Math.abs(vals[i].y-this.yi)/maxcoord;
-            var actualDist = 
-                Math.abs(xreal-
-               this.fparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)) +
-                Math.abs(yreal-
-               this.gparam(vxval,vyval,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa));
+        if(this.dir != VERTICAL && this.dir != HORIZONTAL) {
+            var dists = [];
+            for(var i = 0; i < vals.length; i++) {
 
-            dists.push({"ind" : i, "dist" : actualDist});
+                // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
+                var xreal = vals[i].x/maxcoord;
+                var yreal = vals[i].y/maxcoord;
+                var actualDist = 
+                    Math.abs(xreal-
+                   this.fparam(xreal,xreal,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)) +
+                    Math.abs(yreal-
+                   this.gparam(xreal,yreal,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa));
+                
+                dists.push({"ind" : i, "dist" : actualDist});
 
-        }*/
+            }
 
-        // Math.floor(this.xi+this.radioA*Math.cos(2*Math.PI*t/TIEMPO_VIDA)*maxcoord)
-        var alfa = 2*Math.PI*t/500;
+            dists = dists.sort(s2);
+
+            for(var h = 0; h < dists.length; h++) {
+                var indActual = dists[h].ind;
+                var i = vals[indActual].x;
+                var j = vals[indActual].y;
+
+                var pos = i+j*maxcoord;
+                if( dists[h].dist < 0.02 && pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
+                    // solo un nuevo texel al contorno
+                    this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
+                    agrego = true;
+                    break;
+                }
+            }
+            if(!agrego) {
+                var al = aleat(vals.length);
+                this.contorno.push(new point(vals[al].x,vals[al].y,-1,r,g,b,0,-1));
+            }
+        }
 
         this.contorno.push(new point(
             Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
             Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
             -1,r,g,b,0,-1));
 
-        var al = aleat(vals.length);
-        this.contorno.push(new point(vals[al].x,vals[al].y,-1,r,g,b,0,-1));
-
-
-
-
-//        dists = dists.sort(s);
-
-        /*for(var h = 0; h < dists.length; h++) {
-            var indActual = dists[h].ind;
-            var i = vals[indActual].x;
-            var j = vals[indActual].y;
-
-            var pos = i+j*maxcoord;
-            if( pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
-                // solo un nuevo texel al contorno
-                this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
-                break;
-            }
-        }*/
 
         //this.contorno.sort(s2);
         //this.contorno = [this.contorno[0]];
@@ -434,8 +425,7 @@ particle.prototype.add = function(x,y) {
         var next2 = aleat(vals.length);
         while(next2 == next)
             next2 = aleat(vals.length);
-        // la distancia no es importante
-        // no se trata de matchear ninguna funcion parametrica
+
         this.contorno.push(new point(vals[next].x,vals[next].y,-1,r,g,b,0,-1));
         this.contorno.push(new point(vals[next2].x,vals[next2].y,-1,r,g,b,0,-1));
     }
