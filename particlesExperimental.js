@@ -43,6 +43,8 @@ var cantG; // cantidad de Generadores
 
 var vivas;
 
+var datos;
+
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
     return xc+radio*Math.cos(alfa);
@@ -446,38 +448,6 @@ particle.prototype.add = function(x,y) {
     }
 };
 
-
-// funcion que determina si dos particulas se intersectan
-/*particle.prototype.intersecta = function(p) {
-    if(!this || !p) return false;
-
-    if(this.maxX < p.minX || this.minX > p.maxX
-        || this.maxY < p.minY || this.minY > p.maxY) return false;
-
-
-    for(var i = 0; i < this.a.length; i++)
-        for(var j = 0; j < p.a.length; j++) {
-            if(this.a[i].x == p.a[j].x && this.a[i].y == p.a[j].y)
-                return true;
-        }
-
-    return false;
-};
-
-// fusiona dos particulas en una sola
-particle.prototype.fusion = function(p) {
-    var aCopy = p.a.clone();
-    var contCopy = p.contorno.clone();
-    this.a.push(aCopy);
-
-    this.vx = (this.vx+p.vx)/2;
-    this.vy = (this.vy+p.vy)/2;
-    this.minX = Math.min(this.minX, p.minX);
-    this.minY = Math.min(this.minY, p.minY);
-    this.maxX = Math.max(this.maxX, p.maxX);
-    this.maxY = Math.max(this.maxY, p.maxY);
-};*/
-
 function valueToDir(v) {
     if(v == 0) return RANDOM;
     if(v == 1) return 3;
@@ -574,7 +544,6 @@ function mover() {
            pi.grow();
            vivas++
        }
-       //else particles.splice(i,1);
        largoCont += pi.contorno.length;
     };
 
@@ -743,45 +712,6 @@ function dibujarEscena() {
 }
 
 
-/*function makeTexture() {
-
-
-    //init_variables();
-
-    if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
-        alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inicializado");
-        return;
-    }
-
-
-    d = new Date();
-    t1 = d.getTime();
-    mover();
-
-    var d2 = new Date();
-    var t2 = d2.getTime();
-
-    $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
-    $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
-
-
-    $('iteracion').innerHTML = it+1;
-    $('contorno').innerHTML = largoCont;
-    //$('contorno').innerHTML = cantFor;
-
-    //dibujarParticulas();
-
-    for(var i = 0; i < maxcoord2; i++)
-        delete occupied[i];
-    for(var i = 0; i < particles.length; i++) {
-        var pi = particles[i];
-        for(var j = 0; j < pi.t.length; j++)
-            delete pi.t[j];    
-        delete particles[i];
-    }
-
-}*/
-
 function animate() {
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
@@ -865,6 +795,40 @@ function init_variables() {
 
     d = new Date();
     t1 = d.getTime();
+
+    // datos precargados
+    new Ajax.Request('datos.txt', {
+      method: 'get',
+      onSuccess: function(response) {
+        var dat = response.responseText.split(' ');
+        datos = cargarDatos(dat);
+        $('lightPositionX').value = datos.luzX;
+        $('lightPositionY').value = datos.luzY;
+        $('lightPositionZ').value = datos.luzZ;
+
+        $('c1r').value = datos.col1r;
+        $('c1g').value = datos.col1g;
+        $('c1b').value = datos.col1b;
+        $('c1a').value = datos.col1a;
+
+        $('c1p').value = datos.col1p;
+
+        $('c2r').value = datos.col2r;
+        $('c2g').value = datos.col2g;
+        $('c2b').value = datos.col2b;
+        $('c2a').value = datos.col2a;
+
+        $('tiempo').value = datos.iter;
+        $('cantp').value = datos.cantPart;
+        $('cantnp').value = datos.nPart;
+        $('varcolor').value = datos.vcolor;
+        $('varparticlecolor').value = datos.vcolorPart;
+        $('tiempoVida').value = datos.tVida;
+        $('distG').value = datos.distG;
+        $('cantG').value = datos.cantG;
+
+      }
+    });
 
 }
 
@@ -990,14 +954,9 @@ function webGLStart() {
     initShaders();
     initTexture();
     init_variables();
-
     //initBuffers();
-
-
-
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
-
 }
 
 
