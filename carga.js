@@ -1,5 +1,5 @@
 // pasa los datos del archivo de entrada a un formato interno
-function datos(d) {
+function data(d) {
     this.luzX = d[0];
     this.luzY = d[1];
     this.luzZ = d[2];
@@ -26,7 +26,6 @@ function datos(d) {
     this.cantG = d[19];
 }
 
-function cargarDatos(x) {
-    var d = new datos(x);
-    return d;
+function cargarDatos(d) {
+    return new data(d);
 }

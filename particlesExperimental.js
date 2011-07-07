@@ -44,6 +44,7 @@ var cantG; // cantidad de Generadores
 var vivas;
 
 var datos;
+var archivo = "datos.txt";
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
@@ -356,7 +357,7 @@ particle.prototype.add = function(x,y) {
     var alp = this.a*(1-src_a);
 
     a = src_a + alp;
-    if(a==0) alert("CHANNN");
+
     r = (op.r*src_a + thisr*alp)/a;
     g = (op.g*src_a + thisg*alp)/a;
     b = (op.b*src_a + thisb*alp)/a;
@@ -765,6 +766,41 @@ function ocupada(i) {
     return (p >= 0 && particles[p] && particles[p].cangrow);
 }
 
+function cargar(arch) {
+    // datos precargados
+    new Ajax.Request(arch, {
+      method: 'get',
+      onSuccess: function(response) {
+        datos = cargarDatos(response.responseText.split(' '));
+        $('lightPositionX').value = datos.luzX;
+        $('lightPositionY').value = datos.luzY;
+        $('lightPositionZ').value = datos.luzZ;
+
+        $('c1r').value = datos.col1r;
+        $('c1g').value = datos.col1g;
+        $('c1b').value = datos.col1b;
+        $('c1a').value = datos.col1a;
+
+        $('c1p').value = datos.col1p;
+
+        $('c2r').value = datos.col2r;
+        $('c2g').value = datos.col2g;
+        $('c2b').value = datos.col2b;
+        $('c2a').value = datos.col2a;
+
+        $('tiempo').value = datos.iter;
+        $('cantp').value = datos.cantPart;
+        $('cantnp').value = datos.nPart;
+        $('varcolor').value = datos.vcolor;
+        $('varparticlecolor').value = datos.vcolorPart;
+        $('tiempoVida').value = datos.tVida;
+        $('distG').value = datos.distG;
+        $('cantG').value = datos.cantG;
+
+      }
+    });
+}
+
 
 function init_variables() {
     TIEMPO = $('tiempo').value;
@@ -796,39 +832,7 @@ function init_variables() {
     d = new Date();
     t1 = d.getTime();
 
-    // datos precargados
-    new Ajax.Request('datos.txt', {
-      method: 'get',
-      onSuccess: function(response) {
-        var dat = response.responseText.split(' ');
-        datos = cargarDatos(dat);
-        $('lightPositionX').value = datos.luzX;
-        $('lightPositionY').value = datos.luzY;
-        $('lightPositionZ').value = datos.luzZ;
-
-        $('c1r').value = datos.col1r;
-        $('c1g').value = datos.col1g;
-        $('c1b').value = datos.col1b;
-        $('c1a').value = datos.col1a;
-
-        $('c1p').value = datos.col1p;
-
-        $('c2r').value = datos.col2r;
-        $('c2g').value = datos.col2g;
-        $('c2b').value = datos.col2b;
-        $('c2a').value = datos.col2a;
-
-        $('tiempo').value = datos.iter;
-        $('cantp').value = datos.cantPart;
-        $('cantnp').value = datos.nPart;
-        $('varcolor').value = datos.vcolor;
-        $('varparticlecolor').value = datos.vcolorPart;
-        $('tiempoVida').value = datos.tVida;
-        $('distG').value = datos.distG;
-        $('cantG').value = datos.cantG;
-
-      }
-    });
+    cargar(archivo);    
 
 }
 
@@ -945,7 +949,7 @@ function loadTeapot() {
     });
 }
 
-
+//$('datos').files[0].fileName
 function webGLStart() {
     var canvas = document.getElementById("lesson01-canvas");
     loadTeapot();
