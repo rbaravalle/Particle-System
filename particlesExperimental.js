@@ -6,7 +6,7 @@ var cantFor = 0;
 var RANDOM = 0;
 
 var TIEMPO;
-var maxSize;
+//var maxSize;
 
 var maxcoord = 512;
 var maxcoord2 = maxcoord*maxcoord;
@@ -40,6 +40,8 @@ var stop = 0; // se hizo click, recalcular textura
 var animar = true; // frenar/continuar la animacion
 var distG;
 var cantG; // cantidad de Generadores
+
+var vivas;
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
@@ -281,6 +283,12 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     var cf = [];
     var c = Math.random();
+
+    c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value),
+            parseFloat($('c1a').value)];
+    c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value),
+            parseFloat($('c2a').value)];
+
     if(c <= parseFloat($('c1p').value)*0.01)
 //    if(t < Math.floor(TIEMPO/2))
          cf = c1; else  {cf = c2 }
@@ -305,10 +313,10 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     this.i = i;
 
-    this.t = [];
+    //this.t = [];
     this.contorno = [];
 
-    this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
+    this.tiempoDeVida = tiempo || 200 //parseFloat($('maxSize').value);
     this.tActual = 0;
 
     this.cangrow = true; // crece?
@@ -346,6 +354,7 @@ particle.prototype.add = function(x,y) {
     var alp = this.a*(1-src_a);
 
     a = src_a + alp;
+    if(a==0) alert("CHANNN");
     r = (op.r*src_a + thisr*alp)/a;
     g = (op.g*src_a + thisg*alp)/a;
     b = (op.b*src_a + thisb*alp)/a;
@@ -360,7 +369,7 @@ particle.prototype.add = function(x,y) {
     occupied[pos].b = b;
     occupied[pos].a = a;
 
-    this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
+    //this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
 
     // texels en el contorno del punto agregado
     var vals = [
@@ -520,7 +529,7 @@ function esta (x,y,a) {
 function init_particles() {
     CANT_PARTICLES = parseFloat($('cantp').value);
     CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
-    maxSize = parseFloat($('maxSize').value);
+    //maxSize = parseFloat($('maxSize').value);
     particles = [];
     for(var i = 0; i < CANT_PARTICLES; i++) {
         var px = aleat(maxcoord);
@@ -553,16 +562,19 @@ function mover() {
             py = aleat(maxcoord);
         }
         if(px > 0 && py > 0 && px < maxcoord && py < maxcoord) {
-            particles.push(new particle(px,py,ult++,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
+            particles.push(new particle(px,py,ult+i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
         }
     }
 
     largoCont = 0;
-    for(var i = 0; i < particles.length; i++) {
+    for(var i = 0; i < particles.length - CANT_NEW_PARTICLES; i++) {
        var pi = particles[i];
-       if(pi.cangrow && pi.t.length > maxSize) pi.morir();
-       if(pi.cangrow)
+       //if(pi.cangrow && pi.t.length > maxSize) pi.morir();
+       if(pi.cangrow) {
            pi.grow();
+           vivas++
+       }
+       //else particles.splice(i,1);
        largoCont += pi.contorno.length;
     };
 
@@ -787,15 +799,16 @@ function tick() {
             for(var i = 0; i < maxcoord2; i++)
                 delete occupied[i];
             for(var i = 0; i < particles.length; i++) {
-                var pi = particles[i];
+                /*var pi = particles[i];
                 for(var j = 0; j < pi.t.length; j++)
-                    delete pi.t[j];    
+                    delete pi.t[j];    */
                 delete particles[i];
             }
             init_variables();
         }
 
         if(animar) { 
+            vivas = 0;
             mover(); t++;
 
             if(t%30 == 0) {
@@ -810,6 +823,7 @@ function tick() {
 
             $('iteracion').innerHTML = t;
             $('contorno').innerHTML = largoCont;
+            $('cantPart').innerHTML = vivas;
             $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
             $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
         }
@@ -836,6 +850,7 @@ function init_variables() {
     varparticlecolor = parseFloat($('varparticlecolor').value);
 
     t = 0;
+    vivas = 0;
 
     occupied = [];
     for(var i = 0; i < maxcoord; i++)
