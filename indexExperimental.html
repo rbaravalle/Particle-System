@@ -7,6 +7,7 @@
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="prototype.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="carga.js"></script>
 <script type="text/javascript" src="particlesExperimental.js"></script>
 
 <script id="shader-fs" type="x-shader/x-fragment"> 
@@ -49,7 +50,7 @@
             texColor = vec4(texColor.rgb*spec, texColor.a);
         }
         else {
-            texColor = vec4(vColor.r-0.1,vColor.g-0.1,vColor.b-0.1,vColor.a);//vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
+            texColor = vec4(vColor.r,vColor.g,vColor.b,vColor.a);//vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
         }
         gl_FragColor = texColor;
 
@@ -92,11 +93,14 @@
         <input type = "button" value = "Render!" style="width:150" onclick="stop = 1; init_variables(); tick();" />
         <input type = "button" value = "Animar/Parar" style="width:150" onclick="if(animar== false) {animar=true; tick();} else animar=false;" />
         <input type = "button" value = "3D/2D" style="width:150" onclick="if(__3D== false) __3D=true; else __3D =false;" />
+        <input type="file" id="datos" />
+        <input type = "button" value = "Cargar Archivo" style="width:150" onclick="var d = $('datos').files[0].fileName; cargar(d)" />
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
-       Segundos: <span id="tiempoIt">0</span>
-       Promedio Por It: <span id="promedioIt">0</span>
+       Particulas: <span id="cantPart">0</span> <br/>
+       Seg: <span id="tiempoIt">0</span>
+       Prom: <span id="promedioIt">0</span>
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
@@ -127,7 +131,7 @@
         </table>
         <table>
             <tr>
-                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="2000" size=3 /></td> 
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="10000" size=3 /></td> 
             </tr>
             <tr>
                   <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="1000" size=5 /></td>
@@ -136,13 +140,10 @@
                   <td> <b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b> <input id="cantnp" type="text" value="10" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Tamanio m&aacute;ximo de part&iacute;cula</b> <input id="maxSize" type="text" value="10000" size=5 /></td>
-            </tr>
-            <tr>
                   <td> <b>Variaci&oacute;n de Color</b> <input id="varcolor" type="text" value="0.3" size=5 /></td>
             </tr>
             <tr>
-                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.15" size=5 /></td>
+                  <td> <b>Variaci&oacute;n de Color por part&iacute;cula</b> <input id="varparticlecolor" type="text" value="0.1" size=5 /></td>
             </tr>
             <tr>
                   <td> <b>Tiempo de Vida</b> <input id="tiempoVida" type="text" value="500" size=7 /></td>

@@ -6,7 +6,7 @@ var cantFor = 0;
 var RANDOM = 0;
 
 var TIEMPO;
-var maxSize;
+//var maxSize;
 
 var maxcoord = 512;
 var maxcoord2 = maxcoord*maxcoord;
@@ -40,6 +40,11 @@ var stop = 0; // se hizo click, recalcular textura
 var animar = true; // frenar/continuar la animacion
 var distG;
 var cantG; // cantidad de Generadores
+
+var vivas;
+
+var datos;
+var archivo = "datos.txt";
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
@@ -281,6 +286,12 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     var cf = [];
     var c = Math.random();
+
+    c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value),
+            parseFloat($('c1a').value)];
+    c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value),
+            parseFloat($('c2a').value)];
+
     if(c <= parseFloat($('c1p').value)*0.01)
 //    if(t < Math.floor(TIEMPO/2))
          cf = c1; else  {cf = c2 }
@@ -305,10 +316,10 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     this.i = i;
 
-    this.t = [];
+    //this.t = [];
     this.contorno = [];
 
-    this.tiempoDeVida = tiempo || parseFloat($('maxSize').value);
+    this.tiempoDeVida = tiempo || 200 //parseFloat($('maxSize').value);
     this.tActual = 0;
 
     this.cangrow = true; // crece?
@@ -346,6 +357,7 @@ particle.prototype.add = function(x,y) {
     var alp = this.a*(1-src_a);
 
     a = src_a + alp;
+
     r = (op.r*src_a + thisr*alp)/a;
     g = (op.g*src_a + thisg*alp)/a;
     b = (op.b*src_a + thisb*alp)/a;
@@ -360,7 +372,7 @@ particle.prototype.add = function(x,y) {
     occupied[pos].b = b;
     occupied[pos].a = a;
 
-    this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
+    //this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
 
     // texels en el contorno del punto agregado
     var vals = [
@@ -437,38 +449,6 @@ particle.prototype.add = function(x,y) {
     }
 };
 
-
-// funcion que determina si dos particulas se intersectan
-/*particle.prototype.intersecta = function(p) {
-    if(!this || !p) return false;
-
-    if(this.maxX < p.minX || this.minX > p.maxX
-        || this.maxY < p.minY || this.minY > p.maxY) return false;
-
-
-    for(var i = 0; i < this.a.length; i++)
-        for(var j = 0; j < p.a.length; j++) {
-            if(this.a[i].x == p.a[j].x && this.a[i].y == p.a[j].y)
-                return true;
-        }
-
-    return false;
-};
-
-// fusiona dos particulas en una sola
-particle.prototype.fusion = function(p) {
-    var aCopy = p.a.clone();
-    var contCopy = p.contorno.clone();
-    this.a.push(aCopy);
-
-    this.vx = (this.vx+p.vx)/2;
-    this.vy = (this.vy+p.vy)/2;
-    this.minX = Math.min(this.minX, p.minX);
-    this.minY = Math.min(this.minY, p.minY);
-    this.maxX = Math.max(this.maxX, p.maxX);
-    this.maxY = Math.max(this.maxY, p.maxY);
-};*/
-
 function valueToDir(v) {
     if(v == 0) return RANDOM;
     if(v == 1) return 3;
@@ -520,7 +500,7 @@ function esta (x,y,a) {
 function init_particles() {
     CANT_PARTICLES = parseFloat($('cantp').value);
     CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
-    maxSize = parseFloat($('maxSize').value);
+    //maxSize = parseFloat($('maxSize').value);
     particles = [];
     for(var i = 0; i < CANT_PARTICLES; i++) {
         var px = aleat(maxcoord);
@@ -553,16 +533,18 @@ function mover() {
             py = aleat(maxcoord);
         }
         if(px > 0 && py > 0 && px < maxcoord && py < maxcoord) {
-            particles.push(new particle(px,py,ult++,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
+            particles.push(new particle(px,py,ult+i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
         }
     }
 
     largoCont = 0;
-    for(var i = 0; i < particles.length; i++) {
+    for(var i = 0; i < particles.length - CANT_NEW_PARTICLES; i++) {
        var pi = particles[i];
-       if(pi.cangrow && pi.t.length > maxSize) pi.morir();
-       if(pi.cangrow)
+       //if(pi.cangrow && pi.t.length > maxSize) pi.morir();
+       if(pi.cangrow) {
            pi.grow();
+           vivas++
+       }
        largoCont += pi.contorno.length;
     };
 
@@ -731,45 +713,6 @@ function dibujarEscena() {
 }
 
 
-/*function makeTexture() {
-
-
-    //init_variables();
-
-    if (scenePositionBuffer == null || sceneNormalBuffer == null || sceneTextureCoordBuffer == null || sceneIndexBuffer == null) {
-        alert(scenePositionBuffer + sceneNormalBuffer + sceneTextureCoordBuffer + sceneIndexBuffer + "Uno de los buffers no esta bien inicializado");
-        return;
-    }
-
-
-    d = new Date();
-    t1 = d.getTime();
-    mover();
-
-    var d2 = new Date();
-    var t2 = d2.getTime();
-
-    $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
-    $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
-
-
-    $('iteracion').innerHTML = it+1;
-    $('contorno').innerHTML = largoCont;
-    //$('contorno').innerHTML = cantFor;
-
-    //dibujarParticulas();
-
-    for(var i = 0; i < maxcoord2; i++)
-        delete occupied[i];
-    for(var i = 0; i < particles.length; i++) {
-        var pi = particles[i];
-        for(var j = 0; j < pi.t.length; j++)
-            delete pi.t[j];    
-        delete particles[i];
-    }
-
-}*/
-
 function animate() {
     var timeNow = new Date().getTime();
     if (lastTime != 0) {
@@ -787,15 +730,16 @@ function tick() {
             for(var i = 0; i < maxcoord2; i++)
                 delete occupied[i];
             for(var i = 0; i < particles.length; i++) {
-                var pi = particles[i];
+                /*var pi = particles[i];
                 for(var j = 0; j < pi.t.length; j++)
-                    delete pi.t[j];    
+                    delete pi.t[j];    */
                 delete particles[i];
             }
             init_variables();
         }
 
         if(animar) { 
+            vivas = 0;
             mover(); t++;
 
             if(t%30 == 0) {
@@ -810,6 +754,7 @@ function tick() {
 
             $('iteracion').innerHTML = t;
             $('contorno').innerHTML = largoCont;
+            $('cantPart').innerHTML = vivas;
             $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
             $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
         }
@@ -819,6 +764,41 @@ function ocupada(i) {
     if(!occupied[i]) { return false;}
     var p = occupied[i].particle;
     return (p >= 0 && particles[p] && particles[p].cangrow);
+}
+
+function cargar(arch) {
+    // datos precargados
+    new Ajax.Request(arch, {
+      method: 'get',
+      onSuccess: function(response) {
+        datos = cargarDatos(response.responseText.split(' '));
+        $('lightPositionX').value = datos.luzX;
+        $('lightPositionY').value = datos.luzY;
+        $('lightPositionZ').value = datos.luzZ;
+
+        $('c1r').value = datos.col1r;
+        $('c1g').value = datos.col1g;
+        $('c1b').value = datos.col1b;
+        $('c1a').value = datos.col1a;
+
+        $('c1p').value = datos.col1p;
+
+        $('c2r').value = datos.col2r;
+        $('c2g').value = datos.col2g;
+        $('c2b').value = datos.col2b;
+        $('c2a').value = datos.col2a;
+
+        $('tiempo').value = datos.iter;
+        $('cantp').value = datos.cantPart;
+        $('cantnp').value = datos.nPart;
+        $('varcolor').value = datos.vcolor;
+        $('varparticlecolor').value = datos.vcolorPart;
+        $('tiempoVida').value = datos.tVida;
+        $('distG').value = datos.distG;
+        $('cantG').value = datos.cantG;
+
+      }
+    });
 }
 
 
@@ -836,6 +816,7 @@ function init_variables() {
     varparticlecolor = parseFloat($('varparticlecolor').value);
 
     t = 0;
+    vivas = 0;
 
     occupied = [];
     for(var i = 0; i < maxcoord; i++)
@@ -850,6 +831,8 @@ function init_variables() {
 
     d = new Date();
     t1 = d.getTime();
+
+    cargar(archivo);    
 
 }
 
@@ -966,7 +949,7 @@ function loadTeapot() {
     });
 }
 
-
+//$('datos').files[0].fileName
 function webGLStart() {
     var canvas = document.getElementById("lesson01-canvas");
     loadTeapot();
@@ -975,14 +958,9 @@ function webGLStart() {
     initShaders();
     initTexture();
     init_variables();
-
     //initBuffers();
-
-
-
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
-
 }
 
 
