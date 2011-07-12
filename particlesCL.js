@@ -1043,12 +1043,12 @@ function vectorAdd () {
     }
 
     // Generate input vectors
-    var vectorLength = 30;
-    var UIvector1 = new Uint32Array(vectorLength);    
-    var UIvector2 = new Uint32Array(vectorLength);
-    for ( var i=0; i<vectorLength;  i=i+1) {
-      UIvector1[i] = Math.floor(Math.random() * 100); //Random number 0..99
-      UIvector2[i] = Math.floor(Math.random() * 100); //Random number 0..99
+    var vectorLength = 10;
+    var vector1 = new Int32Array(vectorLength);    
+    var vector2 = new Int32Array(vectorLength);
+    for ( var i=0; i<vectorLength;  i++) {
+      vector1[i] = aleat(100); //Random number 0..99
+      vector2[i] = aleat(100); //Random number 0..99
     }
     
     str += "<br>Vector length = " + vectorLength;
@@ -1095,11 +1095,11 @@ function vectorAdd () {
     // Write the buffer to OpenCL device memory
     var dataObject1 = WebCL.createDataObject ();
     dataObject1.allocate(bufSize);
-    dataObject1.set (UIvector1);
+    dataObject1.set (vector1);
 
     var dataObject2 = WebCL.createDataObject ();
     dataObject2.allocate(bufSize);                
-    dataObject2.set (UIvector2);
+    dataObject2.set (vector2);
     
     cmdQueue.enqueueWriteBuffer (bufIn1, false, 0, dataObject1.length, 
                                  dataObject1, []);
@@ -1121,18 +1121,18 @@ function vectorAdd () {
     cmdQueue.enqueueReadBuffer (bufOut, false, 0, bufSize, dataObject1, []);    
     cmdQueue.finish (); //Finish all the operations
 
-    outBuffer = new Uint32Array(vectorLength);
+    outBuffer = new Int32Array(vectorLength);
     var utils = WebCL.getUtils ();
     utils.writeDataObjectToTypedArray (dataObject1, outBuffer);
     
     //Print input vectors and result vector
     str += "<br>Vector1 = "; 
     for (var i = 0; i < vectorLength; i = i + 1) {
-      str += UIvector1[i] + ", ";
+      str += vector1[i] + ", ";
     }
     str += "<br>Vector2 = ";
     for (var i = 0; i < vectorLength; i = i + 1) {
-      str += UIvector2[i] + ", ";
+      str += vector2[i] + ", ";
     }
     str += "<br>Result = ";
     for (var i = 0; i < vectorLength; i = i + 1) {
