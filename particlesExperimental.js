@@ -61,10 +61,10 @@ function(x,y,xc,yc,radio,alfa) { // random
     return x;
 },
 function(x,y,xc,yc,radio,alfa) { // espiral
-    return xc+radio*Math.cos(alfa)*alfa/4;
+    return xc+radio*Math.cos(alfa)*alfa;
 },
 function(x,y,xc,yc,radio,alfa) { // x ^ 2
-    return x;
+    return (x+xc);
 } ];
 
 var gs = [function(x,y,xc,yc,radio,alfa) { // circulo
@@ -81,10 +81,10 @@ function(x,y,xc,yc,radio,alfa) { // random
     return y;
 },
 function(x,y,xc,yc,radio,alfa) { // espiral
-    return yc+radio*Math.sin(alfa)*alfa/4;
+    return yc+radio*Math.sin(alfa)*alfa;
 },
 function(x,y,xc,yc,radio,alfa) { // x^2
-    return x*x;
+    return  ((x))+yc;
 } ];
 
 var d;
@@ -253,14 +253,14 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = RANDOM// aleat(10);
-    /*if(this.dir > 7) this.dir = RANDOM;
+    this.dir = aleat(6);
+    if(this.dir > 4) this.dir = POLINOMIO;
     else {
-        if(this.dir > 4) {
-            this.dir = HORIZONTAL;
+        if(this.dir > 1) {
+            this.dir = POLINOMIO;
         }
-        else { this.dir = RANDOM; }
-    }*/
+        else { this.dir = POLINOMIO; }
+    }
 
     this.fparam = fs[this.dir];
     this.gparam = gs[this.dir];
@@ -275,11 +275,11 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     if(this.dir == CIRCULO) this.radioA = this.radioB;
 
     // donde comienza la particula
-    if(this.dir == CIRCULO || this.dir == ELIPSE || this.dir == ESPIRAL) 
+    if(this.dir == CIRCULO || this.dir == ELIPSE ) 
         this.initX = this.xi + Math.floor(this.radioA*maxcoord);
-    else this.initX = this.xi;
+    else this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
-    this.initY = this.yi;
+    this.initY = Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
     x = this.initX;
     y = this.initY;
@@ -392,8 +392,7 @@ particle.prototype.add = function(x,y) {
 
         var agrego = false;
 
-        if(this.dir == ESPIRAL || this.dir == CIRCULO || this.dir == ELIPSE
-        || this.dir==POLINOMIO) {
+        if(this.dir == ESPIRAL || this.dir == CIRCULO || this.dir == ELIPSE) {
             var dists = [];
             for(var i = 0; i < vals.length; i++) {
 
@@ -436,7 +435,7 @@ particle.prototype.add = function(x,y) {
                 Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
                 Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
                 -1,r,g,b,0,-1));
-       // }   
+        //}   
     }
     else {
         var next = aleat(vals.length);
@@ -522,6 +521,15 @@ particle.prototype.morir = function() {
 
 // una iteracion del algoritmo
 function mover() {
+
+    TIEMPO_VIDA = $('tiempoVida').value;
+    CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
+    distG = parseFloat($('distG').value);
+    cantG = parseFloat($('cantG').value);
+
+    generadores = [];
+    for(var i = 0; i < cantG; i++)
+        generadores.push({"x":aleat(maxcoord), "y": aleat(maxcoord)});
 
     // nuevas particulas
     var ult = particles.length;
@@ -830,9 +838,7 @@ function init_variables() {
     init_particles();
 
     d = new Date();
-    t1 = d.getTime();
-
-    cargar(archivo);    
+    t1 = d.getTime();  
 
 }
 
@@ -958,6 +964,7 @@ function webGLStart() {
     initShaders();
     initTexture();
     init_variables();
+    cargar(archivo);
     //initBuffers();
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
