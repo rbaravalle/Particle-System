@@ -64,7 +64,8 @@ function(x,y,xc,yc,radio,t) { // espiral
     return xc+radio*Math.cos(t)*t;
 },
 function(x,y,xc,yc,radio,t) { // x ^ 2
-    return t+xc;
+   // return t+xc;
+    return xc + 0.08*Math.pow(0.95,t)*(Math.cos(t))
 } ];
 
 var gs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -84,7 +85,8 @@ function(x,y,xc,yc,radio,t) { // espiral
     return yc+radio*Math.sin(t)*t;
 },
 function(x,y,xc,yc,radio,t) { // x^2
-    return  1/16*Math.sin(t*32)+yc;
+    //return  1/16*Math.sin(t*32)+yc;
+    return yc + 0.08*Math.pow(0.95,t)*(Math.sin(t))
 } ];
 
 var d;
@@ -253,7 +255,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = aleat(7);
+    this.dir = aleat(7)
     /*if(this.dir > 4) this.dir = POLINOMIO;
     else {
         if(this.dir > 1) {
@@ -274,10 +276,8 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     if(this.dir == CIRCULO) this.radioA = this.radioB;
 
-    // donde comienza la particula
-    if(this.dir == CIRCULO || this.dir == ELIPSE ) 
-        this.initX = this.xi + Math.floor(this.radioA*maxcoord);
-    else this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+    // la particula comienza en un punto de la "curva"
+    this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
     this.initY = Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
@@ -388,61 +388,26 @@ particle.prototype.add = function(x,y) {
 
     if(this.dir != RANDOM) {
 
-        /*var alfa = 2*Math.PI*(t-this.tInit)/TIEMPO_VIDA;
-
-        var agrego = false;
-
-        if(this.dir == ESPIRAL || this.dir == CIRCULO || this.dir == ELIPSE) {
-            var dists = [];
-            for(var i = 0; i < vals.length; i++) {
-
-                // se busca minimizar |x-f(alfa)| + |y-g(alfa)|
-                var xreal = vals[i].x/maxcoord;
-                var yreal = vals[i].y/maxcoord;
-                var actualDist = 
-                    Math.abs(xreal-
-                   this.fparam(xreal,xreal,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)) +
-                    Math.abs(yreal-this.yi/maxcoord-
-                   this.gparam(xreal,yreal,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa));
-                
-                dists.push({"ind" : i, "dist" : actualDist});
-
-            }
-
-            dists = dists.sort(s2);
-
-            for(var h = 0; h < dists.length; h++) {
-                var indActual = dists[h].ind;
-                var i = vals[indActual].x;
-                var j = vals[indActual].y;
-
-                var pos = i+j*maxcoord;
-                if( dists[h].dist < 0.02 && pos < maxcoord2 && pos >= 0 && !ocupada(pos) && !esta(i,j,this.contorno)) {
-                    // solo un nuevo texel al contorno
-                    this.contorno.push(new point(i,j,-1,r,g,b,0,dists[h].dist));
-                    agrego = true;
-                    break;
-                }
-            }
-            if(!agrego) {
-                var al = aleat(vals.length);
-                this.contorno.push(new point(vals[al].x,vals[al].y,-1,r,g,b,0,-1));
-            }
-        }*/
-
-        //if(this.dir != POLINOMIO) {
-        var alfa = 2*Math.PI*(t-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*50);
-        if(this.dir == CIRCULO || this.dir == ESPIRAL)
-            alfa = 2*Math.PI*(t-this.tInit+1)/(100+this.radioA*600);
-        if(this.dir == POLINOMIO)
-            alfa = (t-this.tInit+1)/maxcoord;
-        if(this.dir == VERTICAL || this.dir == HORIZONTAL)
-            alfa = (t-this.tInit+1)/maxcoord;
-            this.contorno.push(new point(
-                Math.floor(this.fparam((x)/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
-                Math.floor(this.gparam((x)/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
-                -1,r,g,b,0,-1));
-        //}   
+        var nx = x;
+        var ny = y; // valores dummy
+        var tn = t;
+        while( nx == x && ny == y) {
+            var alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*80);
+            if(this.dir == CIRCULO || this.dir == ESPIRAL )
+                alfa = 2*Math.PI*(tn-this.tInit+1)/(100+this.radioA*1500);
+            if(this.dir == POLINOMIO)
+                alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*20);
+            if(this.dir == VERTICAL || this.dir == HORIZONTAL)
+                alfa = (tn-this.tInit+1)/maxcoord;
+            nx = Math.floor(
+                    this.fparam(x/maxcoord,y/maxcoord,
+                                this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
+            ny = Math.floor(
+                    this.gparam(x/maxcoord,y/maxcoord,
+                                this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
+            tn++;
+        }
+        this.contorno.push(new point(nx, ny,-1,r,g,b,0,-1)); 
     }
     else {
         var next = aleat(vals.length);
