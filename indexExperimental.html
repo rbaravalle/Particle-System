@@ -8,6 +8,7 @@
 <script type="text/javascript" src="prototype.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
 <script type="text/javascript" src="carga.js"></script>
+<script type="text/javascript" src="jscolor/jscolor.js"></script>
 <script type="text/javascript" src="particlesExperimental.js"></script>
 
 <script id="shader-fs" type="x-shader/x-fragment"> 
@@ -89,7 +90,7 @@
 
    <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
 
-   <canvas id="lesson01-canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
+   <canvas id="canvas" style="border: none; background-color: white; float:left;" width="400" height="400"></canvas>
         <input type = "button" value = "Render!" style="width:150" onclick="stop = 1; init_variables(); tick();" />
         <input type = "button" value = "Animar/Parar" style="width:150" onclick="if(animar== false) {animar=true; tick();} else animar=false;" />
         <input type = "button" value = "3D/2D" style="width:150" onclick="if(__3D== false) __3D=true; else __3D =false;" />
@@ -102,36 +103,36 @@
        Seg: <span id="tiempoIt">0</span>
        Prom: <span id="promedioIt">0</span>
         <br />
-        <table style="border: 0; padding: 10px;">
-            <th>
-            <td>R</td><td>G</td><td>B</td><td>A</td><td>Porcentaje</td>
-            </th>
+        <table>
             <tr>
                    <td><b>Posici&oacute;n de la Luz</b></td>
                    <td><input id="lightPositionX" type="text" value="0.0" size=5 /></td>
                    <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
                    <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
             </tr>
+        </table>
+        <table style="border: 0; padding: 10px;">
+            <th>
+            <td>Color</td><td>Alpha</td><td>Porcentaje</td>
+            </th>
             <tr>
-                   <td><b>Color 1</b></td>
-                   <td><input id="c1r" type="text" value="229" size=5 /></td>
-                   <td><input id="c1g" type="text" value="212" size=5 /></td>
-                   <td><input id="c1b" type="text" value="182" size=5 /></td>
+                   <td><b>1</b></td>
+                   <td> <input id="color1" class="color" value="66ff00" size=5> </td>
                    <td><input id="c1a" type="text" value="0.5" size=5 /></td>
                    <td><input id="c1p" type="text" value="0" size=5 /></td>
             </tr>
             <tr>
-                   <td><b>Color 2</b></td>
-                   <td><input id="c2r" type="text" value="102" size=5 /></td>
-                   <td><input id="c2g" type="text" value="55" size=5 /></td>
-                   <td><input id="c2b" type="text" value="35" size=5 /></td>
+                   <td><b>2</b></td>
+                   <td> <input id="color2" class="color" value="66ff00" size=5> </td>
                    <td><input id="c2a" type="text" value="0.1" size=5 /></td>
+                   <td></td>
+
                     <td></td>
             </tr>
         </table>
         <table>
             <tr>
-                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="10000" size=3 /></td> 
+                  <td> <b>Iteraciones</b> <input id="tiempo" type="text" value="20000" size=3 /></td> 
             </tr>
             <tr>
                   <td> <b>Cantidad de Part&iacute;culas</b> <input id="cantp" type="text" value="1000" size=5 /></td>

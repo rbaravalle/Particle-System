@@ -45,6 +45,7 @@ var vivas;
 
 var datos;
 var archivo = "datos.txt";
+var REFRESCO = 16;
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -113,6 +114,30 @@ function aleat(x) {
     return Math.floor(Math.random()*x);
 }
 
+function findPos(obj) {
+    var curleft = curtop = 0;
+    if (obj.offsetParent) {
+        do {
+            curleft += obj.offsetLeft;
+            curtop += obj.offsetTop;
+        } while (obj = obj.offsetParent);
+        return { x: curleft, y: curtop };
+    }
+}
+
+function onButtonDown(e)
+{
+    var pos = findPos(document.getElementById('canvas'));
+    xPos = e.pageX - pos.x;
+    yPos = e.pageY - pos.y;
+
+    var gx = xPos;
+    var gy = (document.getElementById('canvas').height-yPos);
+    cantG++;
+    generadores.push({"x":gx,"y":gy});
+   
+}
+
 function initGL(canvas) {
     try {
         gl = canvas.getContext("experimental-webgl");
@@ -123,6 +148,8 @@ function initGL(canvas) {
     if (!gl) {
         alert("Could not initialise WebGL, sorry :-(");
     }
+
+    canvas.onmousedown=onButtonDown;
 }
 
 
@@ -220,8 +247,6 @@ function initTexture() {
     neheTexture.image.src = "nehe.gif";
 }
 
-
-
 var mvMatrix = mat4.create();
 var pMatrix = mat4.create();
 
@@ -234,8 +259,6 @@ function setMatrixUniforms() {
     mat3.transpose(normalMatrix);
     gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
 }
-
-
 
 function point(x,y,i,r,g,b,a,p) {
     this.x = x
@@ -255,7 +278,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = aleat(7)
+    this.dir = RANDOM
     /*if(this.dir > 4) this.dir = POLINOMIO;
     else {
         if(this.dir > 1) {
@@ -274,12 +297,13 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.radioA = 0.02+Math.random()*0.2;
     this.radioB = 0.02+Math.random()*0.2;
 
+
     if(this.dir == CIRCULO) this.radioA = this.radioB;
 
     // la particula comienza en un punto de la "curva"
-    this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+    this.initX = this.xi//Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
-    this.initY = Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+    this.initY = this.yi//Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
     x = this.initX;
     y = this.initY;
@@ -287,15 +311,10 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var cf = [];
     var c = Math.random();
 
-    c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value),
-            parseFloat($('c1a').value)];
-    c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value),
-            parseFloat($('c2a').value)];
+    calcColors();
 
     if(c <= parseFloat($('c1p').value)*0.01)
-//    if(t < Math.floor(TIEMPO/2))
-         cf = c1; else  {cf = c2 }
-    var d = 0.003921569; // 1/255
+    cf = c1; else  {cf = c2 }
 
     if(pr >= 0) {
         this.r =  pr;
@@ -304,9 +323,9 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
         this.a =  pa;
     }
     else {
-        this.r = cf[0]*d;
-        this.g = cf[1]*d;
-        this.b = cf[2]*d;
+        this.r = cf[0];
+        this.g = cf[1];
+        this.b = cf[2];
         this.a = cf[3];
     }
     c = c*2-1;
@@ -319,7 +338,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     //this.t = [];
     this.contorno = [];
 
-    this.tiempoDeVida = tiempo || 200 //parseFloat($('maxSize').value);
+    this.tiempoDeVida = tiempo || 200
     this.tActual = 0;
 
     this.cangrow = true; // crece?
@@ -496,12 +515,6 @@ function mover() {
 
     TIEMPO_VIDA = $('tiempoVida').value;
     CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
-    distG = parseFloat($('distG').value);
-    cantG = parseFloat($('cantG').value);
-
-    generadores = [];
-    for(var i = 0; i < cantG; i++)
-        generadores.push({"x":aleat(maxcoord), "y": aleat(maxcoord)});
 
     // nuevas particulas
     var ult = particles.length;
@@ -722,7 +735,7 @@ function tick() {
             vivas = 0;
             mover(); t++;
 
-            if(t%30 == 0) {
+            if(t%REFRESCO == 0) {
                 dibujarParticulas();
                 if(__3D) { dibujarEscena(); animate(); } 
             }
@@ -781,16 +794,21 @@ function cargar(arch) {
     });
 }
 
+function calcColors() {
+    var jscolor1 = $('color1')
+    var jscolor2 = $('color2')
+
+    c1 = [parseFloat(jscolor1.color.rgb[0]),parseFloat(jscolor1.color.rgb[1]),parseFloat(jscolor1.color.rgb[2]),parseFloat($('c1a').value)];
+    c2 = [parseFloat(jscolor2.color.rgb[0]),parseFloat(jscolor2.color.rgb[1]),parseFloat(jscolor2.color.rgb[2]),parseFloat($('c2a').value)];
+}
+
 
 function init_variables() {
     TIEMPO = $('tiempo').value;
     TIEMPO_VIDA = $('tiempoVida').value;
     distG = parseFloat($('distG').value);
     cantG = parseFloat($('cantG').value);
-    c1 = [parseFloat($('c1r').value),parseFloat($('c1g').value),parseFloat($('c1b').value),
-            parseFloat($('c1a').value)];
-    c2 = [parseFloat($('c2r').value),parseFloat($('c2g').value),parseFloat($('c2b').value),
-            parseFloat($('c2a').value)];
+    calcColors();
 
     varcolor = parseFloat($('varcolor').value);
     varparticlecolor = parseFloat($('varparticlecolor').value);
@@ -929,7 +947,7 @@ function loadTeapot() {
 
 //$('datos').files[0].fileName
 function webGLStart() {
-    var canvas = document.getElementById("lesson01-canvas");
+    var canvas = document.getElementById("canvas");
     loadTeapot();
     initGL(canvas);
     initTextureFramebuffer();
