@@ -6,7 +6,6 @@ var cantFor = 0;
 var RANDOM = 0;
 
 var TIEMPO;
-//var maxSize;
 
 var maxcoord = 512;
 var maxcoord2 = maxcoord*maxcoord;
@@ -33,7 +32,6 @@ var sceneTextureCoordBuffer;
 var scenePositionBuffer;
 var sceneIndexBuffer;
 
-//var teapotAngle = 180;
 var sceneAngle = 180;
 var lastTime = 0;
 var stop = 0; // se hizo click, recalcular textura
@@ -45,7 +43,7 @@ var vivas;
 
 var datos;
 var archivo = "datos.txt";
-var REFRESCO = 16;
+var REFRESCO = 30;
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -263,6 +261,7 @@ function setMatrixUniforms() {
 function point(x,y,i,r,g,b,a,p) {
     this.x = x
     this.y = y
+    this.z = 0//x*Math.random()-y*Math.random()
     this.particle = i
     this.r = r || 0;
     this.g = g || 0;
@@ -278,11 +277,11 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = RANDOM
-    /*if(this.dir > 4) this.dir = POLINOMIO;
+    this.dir = parseFloat($('dir').value)//aleat(7)
+    /*if(this.dir > 4) this.dir = ESPIRAL;
     else {
         if(this.dir > 1) {
-            this.dir = POLINOMIO;
+            this.dir = CIRCULO;
         }
         else { this.dir = POLINOMIO; }
     }*/
@@ -410,12 +409,14 @@ particle.prototype.add = function(x,y) {
         var nx = x;
         var ny = y; // valores dummy
         var tn = t;
+        var entro = 0;
         while( nx == x && ny == y) {
+            entro++;
             var alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*80);
             if(this.dir == CIRCULO || this.dir == ESPIRAL )
-                alfa = 2*Math.PI*(tn-this.tInit+1)/(100+this.radioA*1500);
+                alfa = 2*Math.PI*(tn-this.tInit+1)/(100+this.radioA*2500);
             if(this.dir == POLINOMIO)
-                alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*20);
+                alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*60);
             if(this.dir == VERTICAL || this.dir == HORIZONTAL)
                 alfa = (tn-this.tInit+1)/maxcoord;
             nx = Math.floor(
@@ -425,6 +426,7 @@ particle.prototype.add = function(x,y) {
                     this.gparam(x/maxcoord,y/maxcoord,
                                 this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
             tn++;
+            if(entro > 4) alert("SI!");
         }
         this.contorno.push(new point(nx, ny,-1,r,g,b,0,-1)); 
     }
@@ -603,7 +605,7 @@ function dibujarParticulas() {
     while(j< maxcoord2) {
          var p = occupied[j];
          if(p) {
-             vertices.push(p.x/(maxcoord),p.y/(maxcoord),0.0);
+             vertices.push(p.x/(maxcoord),p.y/(maxcoord),p.z/maxcoord);
 
              colors.push(p.r,p.g,p.b,1.0);
              normals.push(0.0,0.0,1.0);

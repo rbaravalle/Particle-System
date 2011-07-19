@@ -103,14 +103,6 @@
        Seg: <span id="tiempoIt">0</span>
        Prom: <span id="promedioIt">0</span>
         <br />
-        <table>
-            <tr>
-                   <td><b>Posici&oacute;n de la Luz</b></td>
-                   <td><input id="lightPositionX" type="text" value="0.0" size=5 /></td>
-                   <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
-                   <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
-            </tr>
-        </table>
         <table style="border: 0; padding: 10px;">
             <th>
             <td>Color</td><td>Alpha</td><td>Porcentaje</td>
@@ -132,6 +124,28 @@
         </table>
         <table>
             <tr>
+                   <td><b>Direcci&oacute;n Actual</b></td>
+                   <td><select id="dir">
+                        <option value=0 selected >Circulo</option>
+                        <option value=1 >Vertical</option>
+                        <option value=2 >Elipse</option>
+                        <option value=3 >Horizontal</option>
+                        <option value=4 >Random</option>
+                        <option value=5 >Espiral</option>
+                        <option value=6 >Polinomio</option>
+                   </select></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                   <td><b>Posici&oacute;n de la Luz</b></td>
+                   <td><input id="lightPositionX" type="text" value="0.0" size=5 /></td>
+                   <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
+                   <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
                   <td><input id="tiempo" type="text" value="20000" size=5 /> <b>Iteraciones</b></td> 
             </tr>
             <tr>
@@ -144,7 +158,7 @@
                   <td><input id="varcolor" type="text" value="0.3" size=5 /><b>Variaci&oacute;n de Color</b> </td>
             </tr>
             <tr>
-                  <td><input id="varparticlecolor" type="text" value="0.1" size=5 /> <b>Variaci&oacute;n de Color por part&iacute;cula</b></td>
+                  <td><input id="varparticlecolor" type="text" value="0.1" size=5 /><b>Variaci&oacute;n de Color por part&iacute;cula</b></td>
             </tr>
             <tr>
                   <td><input id="tiempoVida" type="text" value="500" size=5 /><b>Tiempo de Vida</b></td>
