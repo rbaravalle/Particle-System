@@ -47,44 +47,44 @@ var datos;
 var archivo = "datos.txt";
 
 // Arreglos de funciones parametricas
-var fs = [function(x,y,xc,yc,radio,alfa) { // circulo
-    return xc+radio*Math.cos(alfa);
+var fs = [function(x,y,xc,yc,radio,t) { // circulo
+    return xc+radio*Math.cos(t);
 },
-function(x,y,xc,yc,radio,alfa) { return x;}, // vertical
-function(x,y,xc,yc,radio,alfa) { // elipse
-    return xc+radio*Math.cos(alfa)
+function(x,y,xc,yc,radio,t) { return xc;}, // vertical
+function(x,y,xc,yc,radio,t) { // elipse
+    return xc+radio*Math.cos(t)
 },
-function(x,y,xc,yc,radio,alfa) { // horizontal
-    return x+1/maxcoord;
+function(x,y,xc,yc,radio,t) { // horizontal
+    return xc+t;
 },
-function(x,y,xc,yc,radio,alfa) { // random
-    return x;
+function(x,y,xc,yc,radio,t) { // random
+    return xc+t;
 },
-function(x,y,xc,yc,radio,alfa) { // espiral
-    return xc+radio*Math.cos(alfa)*alfa;
+function(x,y,xc,yc,radio,t) { // espiral
+    return xc+radio*Math.cos(t)*t;
 },
-function(x,y,xc,yc,radio,alfa) { // x ^ 2
-    return (x+xc);
+function(x,y,xc,yc,radio,t) { // x ^ 2
+    return t+xc;
 } ];
 
-var gs = [function(x,y,xc,yc,radio,alfa) { // circulo
-    return yc+radio*Math.sin(alfa);
+var gs = [function(x,y,xc,yc,radio,t) { // circulo
+    return yc+radio*Math.sin(t);
 },
-function(x,y,xc,yc,radio,alfa) { return y+1/maxcoord;}, // vertical
-function(x,y,xc,yc,radio,alfa) { // elipse
-    return yc+radio*Math.sin(alfa);
+function(x,y,xc,yc,radio,t) { return yc+t;}, // vertical
+function(x,y,xc,yc,radio,t) { // elipse
+    return yc+radio*Math.sin(t);
 },
-function(x,y,xc,yc,radio,alfa) { // horizontal
-    return y;
+function(x,y,xc,yc,radio,t) { // horizontal
+    return yc;
 },
-function(x,y,xc,yc,radio,alfa) { // random
-    return y;
+function(x,y,xc,yc,radio,t) { // random
+    return yc+t;
 },
-function(x,y,xc,yc,radio,alfa) { // espiral
-    return yc+radio*Math.sin(alfa)*alfa;
+function(x,y,xc,yc,radio,t) { // espiral
+    return yc+radio*Math.sin(t)*t;
 },
-function(x,y,xc,yc,radio,alfa) { // x^2
-    return  ((x))+yc;
+function(x,y,xc,yc,radio,t) { // x^2
+    return  1/16*Math.sin(t*32)+yc;
 } ];
 
 var d;
@@ -253,14 +253,14 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = aleat(6);
-    if(this.dir > 4) this.dir = POLINOMIO;
+    this.dir = aleat(7);
+    /*if(this.dir > 4) this.dir = POLINOMIO;
     else {
         if(this.dir > 1) {
             this.dir = POLINOMIO;
         }
         else { this.dir = POLINOMIO; }
-    }
+    }*/
 
     this.fparam = fs[this.dir];
     this.gparam = gs[this.dir];
@@ -388,7 +388,7 @@ particle.prototype.add = function(x,y) {
 
     if(this.dir != RANDOM) {
 
-        var alfa = 2*Math.PI*(t-this.tInit)/TIEMPO_VIDA;
+        /*var alfa = 2*Math.PI*(t-this.tInit)/TIEMPO_VIDA;
 
         var agrego = false;
 
@@ -428,12 +428,19 @@ particle.prototype.add = function(x,y) {
                 var al = aleat(vals.length);
                 this.contorno.push(new point(vals[al].x,vals[al].y,-1,r,g,b,0,-1));
             }
-        }
+        }*/
 
         //if(this.dir != POLINOMIO) {
+        var alfa = 2*Math.PI*(t-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*50);
+        if(this.dir == CIRCULO || this.dir == ESPIRAL)
+            alfa = 2*Math.PI*(t-this.tInit+1)/(100+this.radioA*600);
+        if(this.dir == POLINOMIO)
+            alfa = (t-this.tInit+1)/maxcoord;
+        if(this.dir == VERTICAL || this.dir == HORIZONTAL)
+            alfa = (t-this.tInit+1)/maxcoord;
             this.contorno.push(new point(
-                Math.floor(this.fparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
-                Math.floor(this.gparam(x/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
+                Math.floor(this.fparam((x)/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
+                Math.floor(this.gparam((x)/maxcoord,y/maxcoord,this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
                 -1,r,g,b,0,-1));
         //}   
     }
