@@ -44,6 +44,8 @@ var vivas;
 var datos;
 var archivo = "datos.txt";
 var REFRESCO = 30;
+var STEP = 1200; // Mayor step, menor espacio entre los puntos que dibujas las curvas
+                 // (curvas menos punteadas)
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -63,8 +65,8 @@ function(x,y,xc,yc,radio,t) { // espiral
     return xc+radio*Math.cos(t)*t;
 },
 function(x,y,xc,yc,radio,t) { // x ^ 2
-   // return t+xc;
-    return xc + 0.08*Math.pow(0.95,t)*(Math.cos(t))
+    return (t)+xc;
+    //return xc + 0.08*Math.pow(0.95,t)*(Math.cos(t))
 } ];
 
 var gs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -85,7 +87,8 @@ function(x,y,xc,yc,radio,t) { // espiral
 },
 function(x,y,xc,yc,radio,t) { // x^2
     //return  1/16*Math.sin(t*32)+yc;
-    return yc + 0.08*Math.pow(0.95,t)*(Math.sin(t))
+    //return yc + 0.08*Math.pow(0.95,t)*(Math.sin(t))
+    return yc + 0.03*Math.sin(10*Math.cos(10*t))//-6*(t-0.4)*(t-0.4);
 } ];
 
 var d;
@@ -289,7 +292,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.fparam = fs[this.dir];
     this.gparam = gs[this.dir];
 
-
+    distG = parseFloat($('distG').value);
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
 
@@ -300,9 +303,9 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     if(this.dir == CIRCULO) this.radioA = this.radioB;
 
     // la particula comienza en un punto de la "curva"
-    this.initX = this.xi//Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+    this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
-    this.initY = this.yi//Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+    this.initY = Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
 
     x = this.initX;
     y = this.initY;
@@ -404,6 +407,12 @@ particle.prototype.add = function(x,y) {
         {'x':x+1,"y":y-1}
     ];
 
+    /*if(t%100 == 0 && this.dir == VERTICAL) this.dir = POLINOMIO; 
+    else { if(t%100 == 0 && this.dir == POLINOMIO) this.dir = VERTICAL; }*/
+
+    this.fparam = fs[this.dir];
+    this.gparam = gs[this.dir];
+
     if(this.dir != RANDOM) {
 
         var nx = x;
@@ -411,14 +420,15 @@ particle.prototype.add = function(x,y) {
         var tn = t;
         var entro = 0;
         while( nx == x && ny == y) {
-            entro++;
-            var alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*80);
+            //entro++;
+            var alfa = (tn-this.tInit+1)/(STEP) //(tn-this.tInit+1)/40000;
+            /*var alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*80);
             if(this.dir == CIRCULO || this.dir == ESPIRAL )
                 alfa = 2*Math.PI*(tn-this.tInit+1)/(100+this.radioA*2500);
             if(this.dir == POLINOMIO)
-                alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*60);
+                alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*1420);
             if(this.dir == VERTICAL || this.dir == HORIZONTAL)
-                alfa = (tn-this.tInit+1)/maxcoord;
+                alfa = (tn-this.tInit+1)/maxcoord;*/
             nx = Math.floor(
                     this.fparam(x/maxcoord,y/maxcoord,
                                 this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
@@ -426,8 +436,8 @@ particle.prototype.add = function(x,y) {
                     this.gparam(x/maxcoord,y/maxcoord,
                                 this.xi/maxcoord,this.yi/maxcoord,this.radioB,alfa)*maxcoord),
             tn++;
-            if(entro > 4) alert("SI!");
         }
+        this.tInit -= tn - t;
         this.contorno.push(new point(nx, ny,-1,r,g,b,0,-1)); 
     }
     else {
@@ -435,9 +445,13 @@ particle.prototype.add = function(x,y) {
         var next2 = aleat(vals.length);
         while(next2 == next)
             next2 = aleat(vals.length);
+        var next3 = aleat(vals.length);
+        while(next3 == next2 || next3 == next2)
+            next3 = aleat(vals.length);
 
         this.contorno.push(new point(vals[next].x,vals[next].y,-1,r,g,b,0,-1));
         this.contorno.push(new point(vals[next2].x,vals[next2].y,-1,r,g,b,0,-1));
+        this.contorno.push(new point(vals[next3].x,vals[next3].y,-1,r,g,b,0,-1));
     }
 };
 
@@ -559,12 +573,9 @@ function dibujarParticulas() {
     gl.viewport(0, 0, maxcoord, maxcoord);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-    //mat4.ortho(0,0,maxcoord,maxcoord,0.1,100.0,pMatrix);
+    mat4.ortho(0,1,0,1,0,0.1,pMatrix);
 
     mat4.identity(mvMatrix);
-
-    mat4.translate(mvMatrix, [-0.5, -0.5, -1.21]); //-1.2162
 
     var vertices = [];
     var colors = [];
@@ -605,7 +616,7 @@ function dibujarParticulas() {
     while(j< maxcoord2) {
          var p = occupied[j];
          if(p) {
-             vertices.push(p.x/(maxcoord),p.y/(maxcoord),p.z/maxcoord);
+             vertices.push(p.x/(maxcoord),p.y/(maxcoord),0/maxcoord);
 
              colors.push(p.r,p.g,p.b,1.0);
              normals.push(0.0,0.0,1.0);
