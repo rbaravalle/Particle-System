@@ -67,6 +67,14 @@ function(x,y,xc,yc,radio,t) { // espiral
 function(x,y,xc,yc,radio,t) { // x ^ 2
     return (t)+xc;
     //return xc + 0.08*Math.pow(0.95,t)*(Math.cos(t))
+},
+function(x,y,xc,yc,radio,t) { // diagonal
+    return xc + t;
+    //return xc + 0.08*Math.pow(0.95,t)*(Math.cos(t))
+},
+function(x,y,xc,yc,radio,t) { // diagonal 2
+    return xc + t;
+    //return xc + 0.08*Math.pow(0.95,t)*(Math.cos(t))
 } ];
 
 var gs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -88,7 +96,14 @@ function(x,y,xc,yc,radio,t) { // espiral
 function(x,y,xc,yc,radio,t) { // x^2
     //return  1/16*Math.sin(t*32)+yc;
     //return yc + 0.08*Math.pow(0.95,t)*(Math.sin(t))
-    return yc + 0.03*Math.sin(10*Math.cos(10*t))//-6*(t-0.4)*(t-0.4);
+    return yc + 4*t*  t;
+    //return yc + 0.03*Math.sin(10*Math.cos(10*t))//-6*(t-0.4)*(t-0.4);
+},
+function(x,y,xc,yc,radio,t) { // diagonal
+    return yc + t;
+},
+function(x,y,xc,yc,radio,t) { // diagonal 2
+    return yc - t;
 } ];
 
 var d;
