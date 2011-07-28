@@ -90,12 +90,13 @@
 
    <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
 
-   <canvas id="canvas" style="border: none; background-color: white; float:left;" width="512" height="512"></canvas>
-        <input type = "button" value = "Render!" style="width:150" onclick="stop = 1; init_variables(); tick();" />
-        <input type = "button" value = "Animar/Parar" style="width:150" onclick="if(animar== false) {animar=true; tick();} else animar=false;" />
-        <input type = "button" value = "3D/2D" style="width:150" onclick="if(__3D== false) __3D=true; else __3D =false;" />
+   <canvas id="canvas" style="border: solid; border-color:white; background-color: black; float:left;" width="512" height="512"></canvas>
+        <input type = "button" value = "Render!" style="width:100" onclick="stop = 1; init_variables(); tick();" />
+        <input type = "button" value = "Animar/Parar" style="width:100" onclick="actualizarValores(); if(animar== false) {animar=true; tick();} else animar=false; " />
+        <input type = "button" value = "3D/2D" style="width:100" onclick="if(__3D== false) __3D=true; else __3D =false;" />
+        <input type = "button" value = "Actualizar" style="width:100" onclick="actualizarValores();" />
         <input type="file" id="datos" />
-        <input type = "button" value = "Cargar Archivo" style="width:150" onclick="var d = $('datos').files[0].fileName; cargar(d)" />
+        <input type = "button" value = "Cargar Archivo" style="width:100" onclick="var d = $('datos').files[0].fileName; cargar(d)" />
    <div id = "container" style = "background-color:gray;" >
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
@@ -145,11 +146,16 @@
                    <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
                    <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
             </tr>
+
         </table>
         <table>
             <tr>
+                  <td><input id="muestreo" type="text" value="1000" size=5 /> <b>Muestreo</b></td> 
+            </tr>
+            <tr>
                   <td><input id="tiempo" type="text" value="20000" size=5 /> <b>Iteraciones</b></td> 
             </tr>
+
             <tr>
                   <td><input id="cantp" type="text" value="1000" size=5 /><b>Cantidad de Part&iacute;culas</b> </td>
             </tr>
@@ -170,6 +176,14 @@
             </tr>
             <tr>
                   <td><input id="cantG" type="text" value="30" size=5 /><b>Cantidad de Generadores</b></td>
+            </tr>
+            <tr>
+                   <td><select id="sembrado">
+                        <option value=0 selected >Aleatorio</option>
+                        <option value=1 >Uniforme</option>
+                   </select>
+                   <b>Sembrado de Generadores</b>
+                    </td>
             </tr>
         </table>
        
