@@ -41,11 +41,17 @@ var cantG; // cantidad de Generadores
 
 var vivas;
 
+var prob1; // probabilidad de que la particula tenga el color 1
+var dirSelec; // direccion seleccionada por el usuario
+
 var datos;
 var archivo = "datos.txt";
 var REFRESCO = 30;
 var STEP = 1200; // Mayor step, menor espacio entre los puntos que dibujas las curvas
                  // (curvas menos punteadas)
+
+var sembrado;
+var muestreo; // establece el intervalo de muestreo de la funcion parametrica
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -96,7 +102,7 @@ function(x,y,xc,yc,radio,t) { // espiral
 function(x,y,xc,yc,radio,t) { // x^2
     //return  1/16*Math.sin(t*32)+yc;
     //return yc + 0.08*Math.pow(0.95,t)*(Math.sin(t))
-    return yc + 4*t*  t;
+    return yc + 4*(t-0.3)*(t-0.3);
     //return yc + 0.03*Math.sin(10*Math.cos(10*t))//-6*(t-0.4)*(t-0.4);
 },
 function(x,y,xc,yc,radio,t) { // diagonal
@@ -150,7 +156,7 @@ function onButtonDown(e)
     var gx = xPos;
     var gy = (document.getElementById('canvas').height-yPos);
     cantG++;
-    generadores.push({"x":gx,"y":gy});
+    generadores.push({'x':gx,'y':gy, 'dir': dirSelec});
    
 }
 
@@ -295,7 +301,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var gy = generadores[c].y;
     
     //this.dir = RANDOM; 
-    this.dir = parseFloat($('dir').value)//aleat(7)
+    this.dir = generadores[c].dir; //aleat(7)
     /*if(this.dir > 4) this.dir = ESPIRAL;
     else {
         if(this.dir > 1) {
@@ -303,11 +309,10 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
         }
         else { this.dir = POLINOMIO; }
     }*/
-
     this.fparam = fs[this.dir];
     this.gparam = gs[this.dir];
 
-    distG = parseFloat($('distG').value);
+    
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
 
@@ -328,9 +333,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var cf = [];
     var c = Math.random();
 
-    calcColors();
-
-    if(c <= parseFloat($('c1p').value)*0.01)
+    if(c <= prob1*0.01)
     cf = c1; else  {cf = c2 }
 
     if(pr >= 0) {
@@ -435,15 +438,7 @@ particle.prototype.add = function(x,y) {
         var tn = t;
         var entro = 0;
         while( nx == x && ny == y) {
-            //entro++;
-            var alfa = (tn-this.tInit+1)/(STEP) //(tn-this.tInit+1)/40000;
-            /*var alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*80);
-            if(this.dir == CIRCULO || this.dir == ESPIRAL )
-                alfa = 2*Math.PI*(tn-this.tInit+1)/(100+this.radioA*2500);
-            if(this.dir == POLINOMIO)
-                alfa = 2*Math.PI*(tn-this.tInit+1)/(3*Math.PI*(this.radioA+this.radioB)*1420);
-            if(this.dir == VERTICAL || this.dir == HORIZONTAL)
-                alfa = (tn-this.tInit+1)/maxcoord;*/
+            var alfa = (tn-this.tInit+1)/(muestreo);
             nx = Math.floor(
                     this.fparam(x/maxcoord,y/maxcoord,
                                 this.xi/maxcoord,this.yi/maxcoord,this.radioA,alfa)*maxcoord),
@@ -541,11 +536,28 @@ particle.prototype.morir = function() {
     this.cangrow = false;
 }
 
+function actualizarValores() {
+    TIEMPO = $('tiempo').value;
+    TIEMPO_VIDA = $('tiempoVida').value;
+    CANT_NEW_PARTICLES = $('cantnp').value;
+    calcColors();
+
+    muestreo = $('muestreo').value;
+    sembrado = $('sembrado').value;
+    distG = parseFloat($('distG').value);
+    cantG = parseFloat($('cantG').value);
+    prob1 = parseFloat($('c1p').value);
+    dirSelec = $('dir').value;
+
+    varcolor = parseFloat($('varcolor').value);
+    varparticlecolor = parseFloat($('varparticlecolor').value);
+    
+}
+
 // una iteracion del algoritmo
 function mover() {
 
-    TIEMPO_VIDA = $('tiempoVida').value;
-    CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
+    
 
     // nuevas particulas
     var ult = particles.length;
@@ -832,14 +844,8 @@ function calcColors() {
 
 
 function init_variables() {
-    TIEMPO = $('tiempo').value;
-    TIEMPO_VIDA = $('tiempoVida').value;
-    distG = parseFloat($('distG').value);
-    cantG = parseFloat($('cantG').value);
-    calcColors();
 
-    varcolor = parseFloat($('varcolor').value);
-    varparticlecolor = parseFloat($('varparticlecolor').value);
+    actualizarValores();
 
     t = 0;
     vivas = 0;
@@ -850,8 +856,17 @@ function init_variables() {
             occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0,0);
 
     generadores = [];
-    for(var i = 0; i < cantG; i++)
-        generadores.push({"x":aleat(maxcoord), "y": aleat(maxcoord)});
+    if(sembrado == 0) {
+        for(var i = 0; i < cantG; i++)
+            generadores.push({'x':aleat(maxcoord), 'y': aleat(maxcoord), 'dir': dirSelec});
+    }
+    else {
+        var step = maxcoord/(cantG);
+        for(var i = 0; i <= maxcoord; i+=step)
+            for(var j = 0; j <= maxcoord; j+=step) {
+                generadores.push({'x':Math.floor(i), 'y': Math.floor(j), 'dir': dirSelec});
+            }
+    }
 
     init_particles();
 
