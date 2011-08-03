@@ -5,12 +5,15 @@ var cantFor = 0;
 
 var RANDOM = 0;
 
-var maxz = 20;
+var maxz = 50;
 
 var TIEMPO;
+var ang;
+var delta = 1;
 
-var maxcoord = 256;
+var maxcoord = 400;
 var maxcoord2 = maxcoord*maxcoord;
+var maxcoord2Z = maxcoord2*maxz;
 var largoCont;
 var varcolor;
 var varparticlecolor;
@@ -288,13 +291,12 @@ function setMatrixUniforms() {
 function point(x,y,z,i,r,g,b,a,p) {
     this.x = x
     this.y = y
-    this.z = z//x*Math.random()-y*Math.random()
+    this.z = z
     this.particle = i
     this.r = r || 0;
     this.g = g || 0;
     this.b = b || 0;
     this.a = a || 0;
-    //this.peso = p || 100000; // a menor peso, mas cercano a la funcion parametrica
 }
 
 function particle(x,y,z,i,tiempo, pr,pg,pb,pa, dir,cambia) {
@@ -319,7 +321,7 @@ function particle(x,y,z,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
-    this.zi = Math.floor(gz + distG*(Math.random()*2-1)*maxcoord);
+    this.zi = Math.floor(gz + distG*(Math.random()*2-1)*maxz);
 
     this.radioA = 0.02+Math.random()*0.2;
     this.radioB = 0.02+Math.random()*0.2;
@@ -328,13 +330,20 @@ function particle(x,y,z,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     if(this.dir == CIRCULO) this.radioA = this.radioB;
 
     // la particula comienza en un punto de la "curva"
-    this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+    if(this.dir != RANDOM) {
+        this.initX = Math.floor(this.fparam(0,0,this.xi/maxcoord,
+                                this.yi/maxcoord,this.radioA,0)*maxcoord);
 
-    this.initY = Math.floor(this.gparam(0,0,this.xi/maxcoord,this.yi/maxcoord,this.radioA,0)*maxcoord);
+        this.initY = Math.floor(this.gparam(0,0,this.xi/maxcoord,
+                                this.yi/maxcoord,this.radioA,0)*maxcoord);
 
-    x = this.initX;
-    y = this.initY;
-    //z = 0;
+        x = this.initX;
+        y = this.initY;
+    } else {
+        this.initX = x;
+        this.initY = y;
+    }
+    this.initZ = z;
 
     var cf = [];
     var c = Math.random();
@@ -386,7 +395,7 @@ function s2(t1,t2) {
 
 particle.prototype.add = function(x,y,z) { 
     var r,g,b;
-    var pos = x+y*maxcoord+z*maxcoord*maxcoord;
+    var pos = x+y*maxcoord+z*maxcoord*maxz;
 
     // variacion de color por texel
     var difc = (Math.random()*2-1)*(varparticlecolor);
@@ -408,7 +417,7 @@ particle.prototype.add = function(x,y,z) {
     b = (op.b*src_a + thisb*alp)/a;
 
 
-    var pos = x+y*maxcoord+z*maxcoord2;
+    var pos = x+y*maxcoord+z*maxcoord*maxz;
     occupied[pos].x = x;
     occupied[pos].y = y;
     occupied[pos].z = z;
@@ -486,6 +495,7 @@ particle.prototype.add = function(x,y,z) {
         while(next4 == next3 || next4 == next2)
             next4 = aleat(vals.length);
 
+        //if(vals[next].z != 0 ) alert(vals[next].z) 
         this.contorno.push(new point(vals[next].x,vals[next].y,vals[next].z,-1,r,g,b,0,-1));
         this.contorno.push(new point(vals[next2].x,vals[next2].y,vals[next2].z,-1,r,g,b,0,-1));
         this.contorno.push(new point(vals[next3].x,vals[next3].y,vals[next3].z,-1,r,g,b,0,-1));
@@ -520,10 +530,10 @@ particle.prototype.grow = function() {
 
         this.contorno.splice(c,1);
 
-        if(nx >= 0 && ny >= 0 && nz >= 0 && nx < maxcoord && ny < maxcoord && nz < maxcoord
- 				&& !ocupada(nx+maxcoord*ny+maxcoord2*nz)) {
+        if(nx >= 0 && ny >= 0 && nz >= 0 && nx < maxcoord && ny < maxcoord && nz < maxz
+ 				&& !ocupada(nx+maxcoord*ny+maxcoord*maxz*nz)) {
 
-                var oc = occupied[nx+maxcoord*ny+maxcoord2*nz];
+                var oc = occupied[nx+maxcoord*ny+maxcoord*maxz*nz];
                 if(oc) {
                     this.add(nx,ny,nz);
                     break;
@@ -551,7 +561,7 @@ function init_particles() {
         var px = aleat(maxcoord);
         var py = aleat(maxcoord);
         var pz = aleat(maxz);
-        while(ocupada(px+maxcoord*py+maxcoord2*pz)) {
+        while(ocupada(px+maxcoord*py+maxcoord*maxz*pz)) {
             px = aleat(maxcoord);
             py = aleat(maxcoord);
             pz = aleat(maxz);
@@ -596,7 +606,7 @@ function mover() {
         var px = aleat(maxcoord);
         var py = aleat(maxcoord);
         var pz = aleat(maxz);
-        while(ocupada(px+maxcoord*py+maxcoord2*pz)) {
+        while(ocupada(px+maxcoord*py+maxcoord*maxz*pz)) {
             px = aleat(maxcoord);
             py = aleat(maxcoord);
             pz = aleat(maxz);
@@ -637,11 +647,21 @@ function dibujarParticulas() {
 
     mat4.identity(mvMatrix);
 
-    mat4.translate(mvMatrix, [-0.5, -0.5, -1.21]); //-1.2162
-    //mat4.rotate(mvMatrix, degToRad(3.4), [1, 0, -1]);
-    //mat4.rotate(mvMatrix, degToRad(sceneAngle), [0, 1, 0]);
+    mat4.translate(mvMatrix, [-0.0, -0.0, -1.5 , 0]); //-1.2162
 
-
+    mat4.rotate(mvMatrix, degToRad(0.4), [1, 0, -1]);
+    if(!ang) ang = 290;
+    ang+=delta; 
+    var a = ang%330;
+    if(a == 0) { 
+        delta*=-1;
+    }
+    a = ang%290;
+    if(a == 0) { 
+        delta*=-1;        
+    }
+    $('zeta').innerHTML = ang;
+    mat4.rotate(mvMatrix, degToRad(ang), [0, 1, 0]);
 
     var vertices = [];
     var colors = [];
@@ -681,9 +701,10 @@ function dibujarParticulas() {
     // /dummy
 
 
-    while(j< maxcoord2) {
+    while(j< maxcoord2Z) {
          var p = occupied[j];
          if(p) {
+
              vertices.push(p.x/(maxcoord),p.y/(maxcoord),p.z/maxcoord);
 
              colors.push(p.r,p.g,p.b,1.0);
@@ -691,7 +712,7 @@ function dibujarParticulas() {
              cant++;
         }
         j++;
-        if(cant > 512 || j >= maxcoord2) {
+        if(cant > 780 || j >= maxcoord2Z) {
             gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
             triangleVertexPositionBuffer.itemSize = 3;
@@ -902,19 +923,23 @@ function init_variables() {
     for(var i = 0; i < maxcoord; i++)
         for(var j = 0; j < maxcoord; j++)
             for(var k = 0; k < maxz; k++)
-               occupied[i+j*maxcoord+k*maxcoord2] = new point(i,j,k,-1,0,0,0,0);
+               occupied[i+j*maxcoord+k*maxcoord*maxz] = new point(i,j,k,-1,0,0,0,0);
 
     generadores = [];
     if(sembrado == 0) {
-        for(var i = 0; i < cantG; i++)
-            generadores.push({'x':aleat(maxcoord), 'y': aleat(maxcoord), 'z':aleat(maxz), 'dir': dirSelec});
+        var str = '';
+        for(var i = 0; i < cantG; i++) {
+            generadores.push({'x':aleat(maxcoord), 'y': aleat(maxcoord), 'z':aleat(maxz), 'dir': dirSelec}); 
+        }
+
     }
     else {
         var step = maxcoord/(cantG);
         for(var i = 0; i <= maxcoord; i+=step)
             for(var j = 0; j <= maxcoord; j+=step) {
-                for(var k = 0; k <= maxcoord; k+=step) {
-                    generadores.push({'x':Math.floor(i), 'y': Math.floor(j), 'z': Math.floor(k), 'dir': dirSelec});
+                for(var k = 0; k <= maxz; k+=maxz/cantG) {
+                    generadores.push({'x':Math.floor(i), 'y': Math.floor(j),
+                                      'z': Math.floor(k), 'dir': dirSelec});
                 }
             }
     }

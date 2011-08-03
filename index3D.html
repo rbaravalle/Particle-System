@@ -1,0 +1,240 @@
+<html>
+
+<head>
+<title>Sistema de Part&iacute;culas</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+<script type="text/javascript" src="prototype.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="carga.js"></script>
+<script type="text/javascript" src="jscolor/jscolor.js"></script>
+<script type="text/javascript" src="particles3D.js"></script>
+
+<script id="shader-fs" type="x-shader/x-fragment"> 
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+ 
+    uniform vec3 uPointLightingLocation;
+
+    varying vec4 vColor;
+    varying vec4 vPosition;
+    varying vec3 vTransformedNormal;
+    varying vec2 vTextureCoord;
+    uniform bool uUseTextures;
+    uniform int uBrdf;
+
+    uniform sampler2D uSampler;
+ 
+    void main(void) {
+        vec3 lightDirection = normalize(uPointLightingLocation - vPosition.xyz);
+        vec3 eyeDirection = normalize(-vPosition.xyz);
+        //vec3 normal = normalize(vTransformedNormal);
+        vec3 normal = normalize(vec3(0.0,0.0,1.0));
+
+        vec3 reflectionDirection = reflect(-lightDirection, normal);
+        // halfway vector between L and V
+        vec3 halfv = normalize(eyeDirection + lightDirection);
+        float NH = dot(normal,halfv);
+
+        float NE = dot(normal,eyeDirection);
+        float EH = dot(eyeDirection,halfv);
+        float NL = dot(normal,lightDirection);
+
+        float uMaterialShininess = 64.0;
+        float specularLightWeighting;// = pow(max(NH, 0.0), uMaterialShininess);
+        float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
+
+        // phong / blinn-phong
+        specularLightWeighting = 
+            uBrdf == 1
+                ? pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess)
+                : pow(max(NH, 0.0), uMaterialShininess);
+
+        if(uBrdf == 2) {
+            float geometric = min(1.0, (2.0*NH*NE) / EH);
+
+            geometric = min(geometric, 2.0*NH*NL / EH);
+
+            // roughness parameter
+            float m = 0.1;
+            // arbitrary constant
+            float c = 0.5;
+
+            float roughness = c*exp(-(NH / (m*m)));
+
+            // index of refraction
+            float f0 = 0.2;
+            float fresnel = f0 + pow(1.0-EH,5.0)*(1.0-f0);
+
+            float rs = fresnel*roughness*geometric / ( NE * NL );
+
+            float specular = 0.4;
+            float diffuse = 0.4;
+            float i = 1.1;
+            specularLightWeighting = i*NL*(specular*rs +  diffuse);
+
+        }
+
+        vec3 spec = vec3(0.3,0.3,0.3) * specularLightWeighting;
+        vec3 diffuse = vec3(0.3,0.3,0.3) * diffuseLightWeighting;
+        spec += diffuse + vec3(0.2,0.2,0.2);
+
+        vec4 texColor;
+        if(uUseTextures) {
+            texColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+            texColor = vec4(texColor.rgb*spec, texColor.a);
+        }
+        else {
+            texColor = vec4(vColor.r,vColor.g,vColor.b,vColor.a);//vec4(vColor.rgb * spec,vColor.a); // vec4(1.0,1.0,1.0,1.0);
+        }
+        gl_FragColor = texColor;
+
+    }
+</script> 
+ 
+<script id="shader-vs" type="x-shader/x-vertex"> 
+    attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+    attribute vec3 aVertexNormal;
+    attribute vec2 aTextureCoord;
+ 
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat3 uNMatrix;
+ 
+    varying vec4 vColor;
+    varying vec4 vPosition;
+    varying vec3 vTransformedNormal;
+    varying vec2 vTextureCoord;
+ 
+    void main(void) {
+
+        vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vec3 normal = normalize(vTransformedNormal);
+        vTransformedNormal = uNMatrix * aVertexNormal;
+        vColor = aVertexColor;
+        vTextureCoord = aTextureCoord;
+    }
+</script> 
+
+
+</head>
+
+<body onload="webGLStart();" style="background-color:black;" >
+
+   <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
+
+   <canvas id="canvas" style="border: solid; border-color:white; background-color: black; float:left;" width="512" height="512"></canvas>
+        <input type = "button" value = "Render!" style="width:100" onclick="stop = 1; init_variables(); tick();" />
+        <input type = "button" value = "Animar/Parar" style="width:100" onclick="actualizarValores(); if(animar== false) {animar=true; tick();} else animar=false; " />
+        <input type = "button" value = "3D/2D" style="width:100" onclick="if(__3D== false) __3D=true; else __3D =false;" />
+        <input type = "button" value = "Actualizar" style="width:100" onclick="actualizarValores();" />
+        <input type="file" id="datos" />
+        <input type = "button" value = "Cargar Archivo" style="width:100" onclick="var d = $('datos').files[0].fileName; cargar(d)" />
+   <div id = "container" style = "background-color:gray;" >
+       Iteracion: <span id="iteracion">0</span>
+       Contorno: <span id="contorno">0</span>
+       Particulas: <span id="cantPart">0</span> <br/>
+       Zeta: <span id="zeta">0</span>
+       Seg: <span id="tiempoIt">0</span>
+       Promedio: <span id="promedioIt">0</span>
+        <br />
+        <table style="border: 0; padding: 10px;">
+            <th>
+            <td>Color</td><td>Alpha</td><td>Porcentaje</td>
+            </th>
+            <tr>
+                   <td><b>1</b></td>
+                   <td> <input id="color1" class="color" value="C7BBAC" size=5> </td>
+                   <td><input id="c1a" type="text" value="0.5" size=5 /></td>
+                   <td><input id="c1p" type="text" value="0" size=5 /></td>
+            </tr>
+            <tr>
+                   <td><b>2</b></td>
+                   <td> <input id="color2" class="color" value="5E4C2C" size=5> </td>
+                   <td><input id="c2a" type="text" value="0.1" size=5 /></td>
+                   <td></td>
+
+                    <td></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                   <td><select id="dir">
+                        <option value=0 selected >Circulo</option>
+                        <option value=1 >Vertical</option>
+                        <option value=2 >Elipse</option>
+                        <option value=3 >Horizontal</option>
+                        <option value=4 >Random</option>
+                        <option value=5 >Espiral</option>
+                        <option value=6 >Polinomio</option>
+                        <option value=7 >Diagonal</option>
+                        <option value=8 >Diagonal 2 </option>
+                   </select></td>
+                   <td><b>Direcci&oacute;n Actual</b></td>
+            </tr>
+            <tr>
+                <td><select id="brdfsel">
+                        <option value="0">Phong</option>
+                        <option value="1">Blinn Phong</option>
+                        <option selected value="2">Cook Torrance</option>
+                    </select>
+                </td><td><b>BRDF</b></td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                   <td><b>Posici&oacute;n de la Luz</b></td>
+                   <td><input id="lightPositionX" type="text" value="0.0" size=5 /></td>
+                   <td><input id="lightPositionY" type="text" value="0.0" size=5 /></td>
+                   <td><input id="lightPositionZ" type="text" value="0.0" size=5 /></td>
+            </tr>
+
+        </table>
+        <table>
+            <tr>
+                  <td><input id="muestreo" type="text" value="1000" size=5 /> <b>Muestreo</b></td> 
+            </tr>
+            <tr>
+                  <td><input id="tiempo" type="text" value="20000" size=5 /> <b>Iteraciones</b></td> 
+            </tr>
+
+            <tr>
+                  <td><input id="cantp" type="text" value="1000" size=5 /><b>Cantidad de Part&iacute;culas</b> </td>
+            </tr>
+            <tr>
+                  <td><input id="cantnp" type="text" value="10" size=5 /><b>Nuevas Part&iacute;culas en cada iteraci&oacute;n</b></td>
+            </tr>
+            <tr>
+                  <td><input id="varcolor" type="text" value="0.3" size=5 /><b>Variaci&oacute;n de Color</b> </td>
+            </tr>
+            <tr>
+                  <td><input id="varparticlecolor" type="text" value="0.1" size=5 /><b>Variaci&oacute;n de Color por part&iacute;cula</b></td>
+            </tr>
+            <tr>
+                  <td><input id="tiempoVida" type="text" value="500" size=5 /><b>Tiempo de Vida</b></td>
+            </tr>
+            <tr>
+                  <td><input id="distG" type="text" value="0.2" size=5 /><b>Distancia de la part&iacute;cula al Generador</b></td>
+            </tr>
+            <tr>
+                  <td><input id="cantG" type="text" value="30" size=5 /><b>Cantidad de Generadores</b></td>
+            </tr>
+            <tr>
+                   <td><select id="sembrado">
+                        <option value=0 selected >Aleatorio</option>
+                        <option value=1 >Uniforme</option>
+                   </select>
+                   <b>Sembrado de Generadores</b>
+                    </td>
+            </tr>
+        </table>
+       
+    </div>
+</body>
+
+</html>
+
