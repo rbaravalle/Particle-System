@@ -645,7 +645,7 @@ function dibujarParticulas() {
     var cant = 0;
 
     for(var j = 0; j < maxcoord2; j++) {
-        if(ocupada(j)) {
+        //if(occupied[j]) {
             var p = occupied[j];
             vertices.push(p.x*m1,p.y*m1,0.0);
             colors.push(p.r,p.g,p.b,1.0);
@@ -667,7 +667,7 @@ function dibujarParticulas() {
                 colors = [];
 
             }
-        }
+        //}
     }
 
 
@@ -828,10 +828,9 @@ function tick() {
 
 function ocupada(i) {
     var o = occupied[i];
-    if(!o) { return false;}
     var p = o.particle;
     var pp = particles[p];
-    return (p >= 0 && pp && pp.cangrow);
+    return (p >= 0 && /*pp &&*/ pp.cangrow);
 }
 
 function cargar(arch) {
