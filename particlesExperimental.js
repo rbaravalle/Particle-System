@@ -9,6 +9,7 @@ var TIEMPO;
 
 var maxcoord = 512;
 var maxcoord2 = maxcoord*maxcoord;
+var m1 = 1/maxcoord;
 var largoCont;
 var varcolor;
 var varparticlecolor;
@@ -46,12 +47,14 @@ var dirSelec; // direccion seleccionada por el usuario
 
 var datos;
 var archivo = "datos.txt";
-var REFRESCO = 30;
+var REFRESCO;
 var STEP = 1200; // Mayor step, menor espacio entre los puntos que dibujas las curvas
                  // (curvas menos punteadas)
 
 var sembrado;
 var muestreo; // establece el intervalo de muestreo de la funcion parametrica
+
+var normals;
 
 // Arreglos de funciones parametricas
 var fs = [function(x,y,xc,yc,radio,t) { // circulo
@@ -102,7 +105,7 @@ function(x,y,xc,yc,radio,t) { // espiral
 function(x,y,xc,yc,radio,t) { // x^2
     //return  1/16*Math.sin(t*32)+yc;
     //return yc + 0.08*Math.pow(0.95,t)*(Math.sin(t))
-    return yc + 4*(t-0.3)*(t-0.3);
+    return yc + 1/8*(Math.sin(3*Math.PI*t)-1/2*Math.sin(15/2*Math.PI*t));
     //return yc + 0.03*Math.sin(10*Math.cos(10*t))//-6*(t-0.4)*(t-0.4);
 },
 function(x,y,xc,yc,radio,t) { // diagonal
@@ -244,6 +247,7 @@ function initShaders() {
     shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
     shaderProgram.samplerUniform = gl.getUniformLocation(shaderProgram, "uSampler");
     shaderProgram.useTexturesUniform = gl.getUniformLocation(shaderProgram, "uUseTextures");
+    shaderProgram.uBrdfUniform = gl.getUniformLocation(shaderProgram, "uBrdf");
 
     shaderProgram.textureCoordAttribute = gl.getAttribLocation(shaderProgram, "aTextureCoord");
     gl.enableVertexAttribArray(shaderProgram.textureCoordAttribute);
@@ -453,15 +457,19 @@ particle.prototype.add = function(x,y) {
     else {
         var next = aleat(vals.length);
         var next2 = aleat(vals.length);
+        var next4 = aleat(vals.length);
         while(next2 == next)
             next2 = aleat(vals.length);
         var next3 = aleat(vals.length);
         while(next3 == next2 || next3 == next2)
             next3 = aleat(vals.length);
+        while(next4 == next3 || next4 == next2)
+            next4 = aleat(vals.length);
 
         this.contorno.push(new point(vals[next].x,vals[next].y,-1,r,g,b,0,-1));
         this.contorno.push(new point(vals[next2].x,vals[next2].y,-1,r,g,b,0,-1));
         this.contorno.push(new point(vals[next3].x,vals[next3].y,-1,r,g,b,0,-1));
+        this.contorno.push(new point(vals[next4].x,vals[next4].y,-1,r,g,b,0,-1));
     }
 };
 
@@ -551,6 +559,7 @@ function actualizarValores() {
 
     varcolor = parseFloat($('varcolor').value);
     varparticlecolor = parseFloat($('varparticlecolor').value);
+    REFRESCO = $('refresco').value;
     
 }
 
@@ -600,14 +609,9 @@ function dibujarParticulas() {
     gl.viewport(0, 0, maxcoord, maxcoord);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    mat4.ortho(0,1,0,1,0,0.1,pMatrix);
-
+    mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
     mat4.identity(mvMatrix);
-
-    var vertices = [];
-    var colors = [];
-    var normals = [];
-    var cant = 0;
+    mat4.translate(mvMatrix, [-0.5, -0.5, -1.21]); //-1.2162
 
     gl.uniform1i(shaderProgram.useTexturesUniform, false);
 
@@ -616,7 +620,6 @@ function dibujarParticulas() {
   	triangleVertexColorBuffer = gl.createBuffer();
     triangleVertexNormalBuffer = gl.createBuffer();
 
-
     gl.uniform3f(
         shaderProgram.pointLightingLocationUniform,
         parseFloat(document.getElementById("lightPositionX").value),
@@ -624,11 +627,7 @@ function dibujarParticulas() {
         parseFloat(document.getElementById("lightPositionZ").value)
     );
 
-    var cant = 0, j = 0;
-    vertices = [];
-    colors = [];
-    normals = [];
-
+    var j = 0;
 
     // dummy
     gl.bindBuffer(gl.ARRAY_BUFFER, sceneTextureCoordBuffer);
@@ -637,47 +636,72 @@ function dibujarParticulas() {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, neheTexture);
     gl.uniform1i(shaderProgram.samplerUniform, 0);
+    var brdf = $("brdfsel").value;
+    gl.uniform1i(shaderProgram.uBrdfUniform, brdf);
     // /dummy
 
+    var vertices = [];
+    var colors = [];
+    var cant = 0;
 
-    while(j< maxcoord2) {
-         var p = occupied[j];
-         if(p) {
-             vertices.push(p.x/(maxcoord),p.y/(maxcoord),0/maxcoord);
+    for(var j = 0; j < maxcoord2; j++) {
+        if(ocupada(j)) {
+            var p = occupied[j];
+            vertices.push(p.x*m1,p.y*m1,0.0);
+            colors.push(p.r,p.g,p.b,1.0);
+            cant++;
 
-             colors.push(p.r,p.g,p.b,1.0);
-             normals.push(0.0,0.0,1.0);
-             cant++;
-        }
-        j++;
-        if(cant > 512 || j >= maxcoord2) {
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-            triangleVertexPositionBuffer.itemSize = 3;
-            triangleVertexPositionBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+            if(cant > 512 || j >= maxcoord2) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+                gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-           	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-            triangleVertexColorBuffer.itemSize = 4;
-           	triangleVertexColorBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+               	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+                gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexNormalBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-            triangleVertexNormalBuffer.itemSize = 3;
-            triangleVertexNormalBuffer.numItems = cant;
-            gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+                gl.drawArrays(gl.POINTS, 0, cant);
 
-            gl.drawArrays(gl.POINTS, 0, cant);
+                cant = 0;
+                vertices = [];
+                colors = [];
 
-            cant = 0;
-            vertices = [];
-            colors = [];
-            normals = [];
-
+            }
         }
     }
+
+
+    //var colors = [];
+        //var p = occupied[i];
+        /*if(p) {
+             //colors.push(p.r,p.g,p.b,1.0);
+             //cant++;
+        }
+        else {
+            colors.push(0.0,0.0,0.0,1.0);
+        }*/
+        /*var m1 = 1/maxcoord;
+        var x = i%maxcoord;
+        var y = Math.floor(i*m1);
+        vertices.push(x*m1,y*m1,0.0);*/
+
+    /*gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    triangleVertexPositionBuffer.itemSize = 3;
+    triangleVertexPositionBuffer.numItems = maxcoord2;
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    triangleVertexColorBuffer.itemSize = 4;
+   	triangleVertexColorBuffer.numItems = maxcoord2;
+    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);*/
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexNormalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+
+    //gl.drawArrays(gl.POINTS, 0, cant);
 
     // dibuja eso en esta textura
     if(__3D) {
@@ -695,6 +719,8 @@ function dibujarEscena() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+//    mat4.ortho(0,1,0,1,0,0.1,pMatrix);
+
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
     mat4.identity(mvMatrix);
@@ -703,7 +729,12 @@ function dibujarEscena() {
     mat4.rotate(mvMatrix, degToRad(3.4), [1, 0, -1]);
     mat4.rotate(mvMatrix, degToRad(sceneAngle), [0, 1, 0]);
 
+/*    mat4.translate(mvMatrix, [20, -50, -160]);
+    mat4.rotate(mvMatrix, degToRad(0.0), [1, 0, -1]);
+    mat4.rotate(mvMatrix, degToRad(sceneAngle), [0, 1, 0]);*/
 
+    var brdf = $("brdfsel").value;
+    gl.uniform1i(shaderProgram.uBrdfUniform, brdf);
 
     gl.uniform3f(
         shaderProgram.pointLightingLocationUniform,
@@ -773,30 +804,34 @@ function tick() {
 
         if(animar) { 
             vivas = 0;
-            mover(); t++;
+            mover();
+            t++;
 
-            if(t%REFRESCO == 0) {
+            if(t%REFRESCO == 0 || t== TIEMPO-1) {
                 dibujarParticulas();
                 if(__3D) { dibujarEscena(); animate(); } 
             }
             
-            if(t < TIEMPO -1) requestAnimFrame(tick);
+            if(t < TIEMPO -1 && vivas > 0) requestAnimFrame(tick);
 
-            var d2 = new Date();
-            var t2 = d2.getTime();
-
-            $('iteracion').innerHTML = t;
-            $('contorno').innerHTML = largoCont;
-            $('cantPart').innerHTML = vivas;
-            $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
-            $('promedioIt').innerHTML = Math.abs(t2-t1)/(1000*TIEMPO) ;
+//            if(t==TIEMPO-1) {
+                var d2 = new Date();
+                var t2 = d2.getTime();
+                $('iteracion').innerHTML = t;
+                $('contorno').innerHTML = largoCont;
+                $('cantPart').innerHTML = vivas;
+                $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
+                $('promedioIt').innerHTML = Math.abs(t2-t1)/1000*1/t ;
+//            }
         }
 }
 
 function ocupada(i) {
-    if(!occupied[i]) { return false;}
-    var p = occupied[i].particle;
-    return (p >= 0 && particles[p] && particles[p].cangrow);
+    var o = occupied[i];
+    if(!o) { return false;}
+    var p = o.particle;
+    var pp = particles[p];
+    return (p >= 0 && pp && pp.cangrow);
 }
 
 function cargar(arch) {
@@ -868,10 +903,18 @@ function init_variables() {
             }
     }
 
+    normals = [];
+    for(var i = 0; i < maxcoord2; i++) {
+        normals.push(0.0,0.0,0.1);
+    }
+
+
     init_particles();
 
     d = new Date();
-    t1 = d.getTime();  
+    t1 = d.getTime(); 
+
+    tick(); 
 
 }
 
@@ -953,7 +996,7 @@ function initBuffers() {
 
 }
 
-function handleLoadedTeapot(teapotData) {
+function handleLoadedScene(teapotData) {
     sceneNormalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, sceneNormalBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(teapotData.vertexNormals), gl.STATIC_DRAW);
@@ -979,24 +1022,137 @@ function handleLoadedTeapot(teapotData) {
     sceneIndexBuffer.numItems = teapotData.indices.length;
  }
 
-function loadTeapot() {
+
+function loadscene() {
+    if(true) {
     new Ajax.Request('Teapot.json', {
       method: 'get',
       onSuccess: function(response) {
-        handleLoadedTeapot(JSON.parse(response.responseText));
+        handleLoadedScene(JSON.parse(response.responseText));
       }
-    });
+    }); }
+    else {
+   new Ajax.Request('duck.dae', {
+      method: 'get',
+      onSuccess: readCOLLADA        
+    }); }
+}
+
+function readCOLLADA(xml) {
+    var root = xml.responseText;
+    var myDiv = Element.extend(document.createElement("div"));
+    myDiv.innerHTML = root;
+    var geoms = myDiv.getElementsByTagName('geometry');
+
+    // cycle through each geometry
+    for(var g = 0; g < geoms.length; g++) {
+        var meshes = geoms[g].getElementsByTagName('mesh');
+
+        // cycle through each mesh
+        for(var m = 0; m < meshes.length; m++) {
+            var triangles = meshes[m].getElementsByTagName('triangles')[0];
+            var idVertex; // id object in the xml which contains the normals
+            var idNormal; // id object in the xml which contains the normals
+            var idTexcoord; // id object in the xml which contains the texcoords
+            var idPosition; // id object in the xml which contains the positions
+            var normals, positions, texcoords; // strings containing the data
+            var cnormals, cpositions, ctexcoords, ctriangs; // count parameters for each type of data
+          
+            var inputs = triangles.getElementsByTagName('input');
+            
+            // cycle through each input
+            for(var inp = 0; inp < inputs.length; inp++) {
+                var iactual = inputs[inp];
+                var sourc = iactual.getAttribute('source');
+                var semantic = iactual.getAttribute('semantic');
+
+                if(semantic == 'VERTEX') { idVertex = sourc.replace(/#/g, ''); }
+                if(semantic == 'NORMAL') { idNormal = sourc.replace(/#/g, ''); }
+                if(semantic == 'TEXCOORD') { idTexcoord = sourc.replace(/#/g, ''); }
+
+            }
+           
+            var vertices = meshes[m].getElementsByTagName('vertices')[0];
+
+            // we are interested in vertex's positions
+            // so we search in vertex's attributes looking for positions
+            var attr = vertices.getElementsByTagName('input');
+
+            for(var a = 0; a < attr.length; a++) {
+                if(attr[a].getAttribute('semantic') == 'POSITION') { 
+                    idPosition = attr[a].getAttribute('source').replace(/#/g, '');
+                    break;
+                }
+            }
+
+
+            var sources = meshes[m].getElementsByTagName('source');
+
+            // cycle through each source
+            for(var s = 0; s < sources.length; s++) {
+                if(sources[s].getAttribute('id') == idNormal) {
+                    var array = sources[s].next();
+                    cnormals = array.getAttribute('count');
+                    normals = array.innerHTML.split(' ');
+                 }
+                else if(sources[s].getAttribute('id') == idTexcoord) {
+                    var array = sources[s].next();
+                    ctexcoords = array.getAttribute('count');
+                    texcoords = array.innerHTML.split(' ');
+                }
+                else if(sources[s].getAttribute('id') == idPosition) {
+                    var array = sources[s].next();
+                    cpositions = array.getAttribute('count');
+                    positions = array.innerHTML.split(' ');
+                }
+            }
+            
+            var aNorm = triangles.getElementsByTagName('p')[0];
+            var ctriangles = triangles.getAttribute('count');
+
+            //var cant = aNorm.getAttribute('count');
+            var triangs = aNorm.innerHTML.split(' ');
+
+            var fpositions, fnormals, ftexcoords, findexs;
+            // final variables
+            // we loop over vertices defined by (vertex,normal,texcoord) in 'triangs'
+            for(var i = 0; i < triangs.length; i+=3) {
+                findexs += i/3 + ' ';
+
+                var iposition = triangs[i];
+                fpositions += positions[iposition*3] + ' ' 
+                            + positions[iposition*3+1] + ' ' 
+                            + positions[iposition*3+2] + ' ' ;
+
+                var inormal = triangs[i+1];
+                fnormals += normals[inormal*3] + ' ' 
+                          + normals[inormal*3+1] + ' ' 
+                          + normals[inormal*3+2] + ' ' ;
+
+                var itcoord = triangs[i+2];
+                ftexcoords += texcoords[itcoord*2] + ' '
+                            + texcoords[itcoord*2+1] + ' ' ;
+            }
+
+            var sceneData = {'vertexNormals': fnormals.trim().split(' '),
+                             'vertexPositions': fpositions.trim().split(' '),
+                             "vertexTextureCoords" : ftexcoords.trim().split(' '),
+                             'indices': findexs.trim().split(' ')};
+
+            handleLoadedScene(sceneData);
+            
+        }
+    }
 }
 
 //$('datos').files[0].fileName
 function webGLStart() {
     var canvas = document.getElementById("canvas");
-    loadTeapot();
+    loadscene();
     initGL(canvas);
     initTextureFramebuffer();
     initShaders();
     initTexture();
-    init_variables();
     cargar(archivo);
     //initBuffers();
     gl.clearColor(0.0, 0.0, 0.0, 1.0);

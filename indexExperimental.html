@@ -23,6 +23,7 @@
     varying vec3 vTransformedNormal;
     varying vec2 vTextureCoord;
     uniform bool uUseTextures;
+    uniform int uBrdf;
 
     uniform sampler2D uSampler;
  
@@ -36,13 +37,47 @@
         vec3 halfv = normalize(eyeDirection + lightDirection);
         float NH = dot(normal,halfv);
 
+        float NE = dot(normal,eyeDirection);
+        float EH = dot(eyeDirection,halfv);
+        float NL = dot(normal,lightDirection);
 
         float uMaterialShininess = 64.0;
-        float specularLightWeighting = pow(max(NH, 0.0), uMaterialShininess);
+        float specularLightWeighting;// = pow(max(NH, 0.0), uMaterialShininess);
         float diffuseLightWeighting = max(dot(normal, lightDirection), 0.0);
 
-        vec3 spec = vec3(0.8,0.8,0.8) * specularLightWeighting;
-        vec3 diffuse = vec3(0.8,0.8,0.8) * diffuseLightWeighting;
+        // phong / blinn-phong
+        specularLightWeighting = 
+            uBrdf == 1
+                ? pow(max(dot(reflectionDirection, eyeDirection), 0.0), uMaterialShininess)
+                : pow(max(NH, 0.0), uMaterialShininess);
+
+        if(uBrdf == 2) {
+            float geometric = min(1.0, (2.0*NH*NE) / EH);
+
+            geometric = min(geometric, 2.0*NH*NL / EH);
+
+            // roughness parameter
+            float m = 0.1;
+            // arbitrary constant
+            float c = 0.5;
+
+            float roughness = c*exp(-(NH / (m*m)));
+
+            // index of refraction
+            float f0 = 0.2;
+            float fresnel = f0 + pow(1.0-EH,5.0)*(1.0-f0);
+
+            float rs = fresnel*roughness*geometric / ( NE * NL );
+
+            float specular = 0.4;
+            float diffuse = 0.4;
+            float i = 1.1;
+            specularLightWeighting = i*NL*(specular*rs +  diffuse);
+
+        }
+
+        vec3 spec = vec3(0.3,0.3,0.3) * specularLightWeighting;
+        vec3 diffuse = vec3(0.3,0.3,0.3) * diffuseLightWeighting;
         spec += diffuse + vec3(0.2,0.2,0.2);
 
         vec4 texColor;
@@ -74,9 +109,10 @@
     varying vec2 vTextureCoord;
  
     void main(void) {
+
         vPosition = uMVMatrix * vec4(aVertexPosition, 1.0);
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-        vec3 normal = normalize(vTransformedNormal);
+        //vec3 normal = normalize(vTransformedNormal);
         vTransformedNormal = uNMatrix * aVertexNormal;
         vColor = aVertexColor;
         vTextureCoord = aTextureCoord;
@@ -91,18 +127,19 @@
    <div style="text-align:center; font-size:30px; color:white;">Sistema de Part&iacute;culas</div>
 
    <canvas id="canvas" style="border: solid; border-color:white; background-color: black; float:left;" width="512" height="512"></canvas>
-        <input type = "button" value = "Render!" style="width:100" onclick="stop = 1; init_variables(); tick();" />
+        <input type = "button" value = "Render!" style="width:100" onclick="stop = 1; animar=true; init_variables();" />
         <input type = "button" value = "Animar/Parar" style="width:100" onclick="actualizarValores(); if(animar== false) {animar=true; tick();} else animar=false; " />
         <input type = "button" value = "3D/2D" style="width:100" onclick="if(__3D== false) __3D=true; else __3D =false;" />
         <input type = "button" value = "Actualizar" style="width:100" onclick="actualizarValores();" />
         <input type="file" id="datos" />
         <input type = "button" value = "Cargar Archivo" style="width:100" onclick="var d = $('datos').files[0].fileName; cargar(d)" />
    <div id = "container" style = "background-color:gray;" >
+       <input id="refresco" type="text" value="10" size=5 />
        Iteracion: <span id="iteracion">0</span>
        Contorno: <span id="contorno">0</span>
        Particulas: <span id="cantPart">0</span> <br/>
        Seg: <span id="tiempoIt">0</span>
-       Prom: <span id="promedioIt">0</span>
+       Promedio: <span id="promedioIt">0</span>
         <br />
         <table style="border: 0; padding: 10px;">
             <th>
@@ -110,13 +147,13 @@
             </th>
             <tr>
                    <td><b>1</b></td>
-                   <td> <input id="color1" class="color" value="66ff00" size=5> </td>
+                   <td> <input id="color1" class="color" value="C7BBAC" size=5> </td>
                    <td><input id="c1a" type="text" value="0.5" size=5 /></td>
                    <td><input id="c1p" type="text" value="0" size=5 /></td>
             </tr>
             <tr>
                    <td><b>2</b></td>
-                   <td> <input id="color2" class="color" value="66ff00" size=5> </td>
+                   <td> <input id="color2" class="color" value="5E4C2C" size=5> </td>
                    <td><input id="c2a" type="text" value="0.1" size=5 /></td>
                    <td></td>
 
@@ -125,7 +162,6 @@
         </table>
         <table>
             <tr>
-                   <td><b>Direcci&oacute;n Actual</b></td>
                    <td><select id="dir">
                         <option value=0 selected >Circulo</option>
                         <option value=1 >Vertical</option>
@@ -137,6 +173,15 @@
                         <option value=7 >Diagonal</option>
                         <option value=8 >Diagonal 2 </option>
                    </select></td>
+                   <td><b>Direcci&oacute;n Actual</b></td>
+            </tr>
+            <tr>
+                <td><select id="brdfsel">
+                        <option value="0">Phong</option>
+                        <option value="1">Blinn Phong</option>
+                        <option selected value="2">Cook Torrance</option>
+                    </select>
+                </td><td><b>BRDF</b></td>
             </tr>
         </table>
         <table>
