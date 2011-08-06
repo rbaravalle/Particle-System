@@ -258,7 +258,6 @@ function initTexture() {
     neheTexture.image.onload = function () {
         handleLoadedTexture(neheTexture)
     }
-
     neheTexture.image.src = "nehe.gif";
 }
 
@@ -268,17 +267,18 @@ var pMatrix = mat4.create();
 function setMatrixUniforms() {
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
-
     var normalMatrix = mat3.create();
     mat4.toInverseMat3(mvMatrix, normalMatrix);
     mat3.transpose(normalMatrix);
     gl.uniformMatrix3fv(shaderProgram.nMatrixUniform, false, normalMatrix);
 }
 
-function point(x,y,i,r,g,b,a,p) {
+function xy(x,y) {
     this.x = x
     this.y = y
-    //this.z = 0//x*Math.random()-y*Math.random()
+}
+
+function point(i,r,g,b,a,p) {
     this.particle = i
     this.r = r || 0;
     this.g = g || 0;
@@ -286,8 +286,7 @@ function point(x,y,i,r,g,b,a,p) {
     this.a = a || 0;
 }
 
-function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
-
+function particle(i,tiempo, pr,pg,pb,pa, dir,cambia) {
     var c = aleat(generadores.length);
     var gx = generadores[c].x;
     var gy = generadores[c].y;
@@ -295,19 +294,18 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
     this.dir = generadores[c].dir;
     this.fparam = fs[this.dir];
     this.gparam = gs[this.dir];
-
     
     this.xi = Math.floor(gx + distG*(Math.random()*2-1)*maxcoord);
     this.yi = Math.floor(gy + distG*(Math.random()*2-1)*maxcoord);
 
-    this.radioA = 0.02+Math.random()*0.2;
-    this.radioB = 0.02+Math.random()*0.2;
+    this.radioA = 0.02+Math.random()*0.1;
+    this.radioB = 0.02+Math.random()*0.1;
 
     if(this.dir == CIRCULO) this.radioA = this.radioB;
 
     // la particula comienza en un punto de la "curva"
-    x = Math.floor(this.fparam(this.xi*m1,this.yi*m1,this.radioA,0)*maxcoord);
-    y = Math.floor(this.gparam(this.xi*m1,this.yi*m1,this.radioB,0)*maxcoord);
+    var x = Math.floor(this.fparam(this.xi*m1,this.yi*m1,this.radioA,0)*maxcoord);
+    var y = Math.floor(this.gparam(this.xi*m1,this.yi*m1,this.radioB,0)*maxcoord);
 
     var cf = [];
     var c = Math.random();
@@ -347,8 +345,7 @@ function particle(x,y,i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
 particle.prototype.add = function(x,y) { 
     var pos = x+y*maxcoord;
-    if(!occupied[pos]) { //alert(x + ' ' + y); 
-            return; }
+    if(!occupied[pos]) return;
     var r,g,b;
 
     // variacion de color por texel
@@ -364,22 +361,19 @@ particle.prototype.add = function(x,y) {
 
     a = src_a + alp;
     a1 = 1/a;
-
     r = (op.r*src_a + thisr*alp)*a1;
     g = (op.g*src_a + thisg*alp)*a1;
     b = (op.b*src_a + thisb*alp)*a1;
 
-
     var pos = x+y*maxcoord;
-    occupied[pos].x = x;
-    occupied[pos].y = y;
+
     occupied[pos].particle = this.i;
     occupied[pos].r = r;
     occupied[pos].g = g;
     occupied[pos].b = b;
     occupied[pos].a = a;
 
-    //this.t[this.t.length] = new point(x,y,this.i,r,g,b,a); 
+    //this.t[this.t.length] = new point(this.i,r,g,b,a); 
 
     // texels en el contorno del punto agregado
     var vals = [
@@ -392,9 +386,6 @@ particle.prototype.add = function(x,y) {
         {'x':x,"y":y-1},
         {'x':x+1,"y":y-1}
     ];
-
-    this.fparam = fs[this.dir];
-    this.gparam = gs[this.dir];
 
     if(this.dir != RANDOM) {
 
@@ -411,7 +402,7 @@ particle.prototype.add = function(x,y) {
             tn++;
         }
         this.tInit -= tn - t;
-        this.contorno.push(new point(nx, ny,-1,r,g,b,0,-1)); 
+        this.contorno.push(new xy(nx, ny)); 
     }
     else {
         var next = aleat(vals.length);
@@ -425,10 +416,10 @@ particle.prototype.add = function(x,y) {
         while(next4 == next3 || next4 == next2)
             next4 = aleat(vals.length);
 
-        this.contorno.push(new point(vals[next].x,vals[next].y,-1,r,g,b,0,-1));
-        this.contorno.push(new point(vals[next2].x,vals[next2].y,-1,r,g,b,0,-1));
-        this.contorno.push(new point(vals[next3].x,vals[next3].y,-1,r,g,b,0,-1));
-        this.contorno.push(new point(vals[next4].x,vals[next4].y,-1,r,g,b,0,-1));
+        this.contorno.push(new xy(vals[next].x,vals[next].y));
+        this.contorno.push(new xy(vals[next2].x,vals[next2].y));
+        this.contorno.push(new xy(vals[next3].x,vals[next3].y));
+        this.contorno.push(new xy(vals[next4].x,vals[next4].y));
     }
 };
 
@@ -438,7 +429,6 @@ particle.prototype.grow = function() {
     var maxim = this.contorno.length
     var h;
     for(h = 0; h < maxim; h++) {
-        cantFor++;
         var cont = this.contorno[h];
         var nx = cont.x;
         var ny = cont.y;
@@ -461,13 +451,7 @@ function init_particles() {
     sparticles = [];
     cantPart = 0;
     for(var i = 0; i < CANT_PARTICLES; i++) {
-        var px = aleat(maxcoord);
-        var py = aleat(maxcoord);
-        while(ocupada(px+maxcoord*py)) {
-            px = aleat(maxcoord);
-            py = aleat(maxcoord);
-        }
-        particles.push(new particle(px,py,i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
+        particles.push(new particle(i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
         sparticles.push(true); // la particula esta viva
     }
     cantPart += CANT_PARTICLES;
@@ -486,7 +470,7 @@ function actualizarValores() {
     muestreo = $('muestreo').value;
     sembrado = $('sembrado').value;
     distG = parseFloat($('distG').value);
-    cantG = parseFloat($('cantG').value);
+    cantG = $('cantG').value;
     prob1 = parseFloat($('c1p').value);
     dirSelec = $('dir').value;
 
@@ -515,18 +499,10 @@ function mover() {
     // nuevas particulas
     var ult = cantPart;
     for(var i = 0; i < CANT_NEW_PARTICLES; i++) {
-        var px = aleat(maxcoord);
-        var py = aleat(maxcoord);
-        while(ocupada(px+maxcoord*py)) {
-            px = aleat(maxcoord);
-            py = aleat(maxcoord);
-        }
-        particles.push(new particle(px,py,ult+i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
+        particles.push(new particle(ult+i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
         sparticles.push(true);
     }
     cantPart += CANT_NEW_PARTICLES;
-
-
 }
 
 
@@ -581,7 +557,9 @@ function dibujarParticulas() {
     for(var j = 0; j < maxcoord2; j++) {
         if(occupied[j].particle > 0) {
             var p = occupied[j];
-            vertices.push(p.x*m1,p.y*m1,0.0);
+            var x = j%maxcoord;
+            var y = Math.floor(j*m1);
+            vertices.push(x*m1,y*m1,0.0);
             colors.push(p.r,p.g,p.b,1.0);
             cant++;
 
@@ -603,9 +581,7 @@ function dibujarParticulas() {
                 cant = 0;
                 vertices = [];
                 colors = [];
-
             }
-
         }
     }
 
@@ -658,8 +634,6 @@ function dibujarEscena() {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-//    mat4.ortho(0,1,0,1,0,0.1,pMatrix);
-
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
     mat4.identity(mvMatrix);
@@ -667,10 +641,6 @@ function dibujarEscena() {
     mat4.translate(mvMatrix, [0.0, 0.0, -40.0]);
     mat4.rotate(mvMatrix, degToRad(3.4), [1, 0, -1]);
     mat4.rotate(mvMatrix, degToRad(sceneAngle), [0, 1, 0]);
-
-/*    mat4.translate(mvMatrix, [20, -50, -160]);
-    mat4.rotate(mvMatrix, degToRad(0.0), [1, 0, -1]);
-    mat4.rotate(mvMatrix, degToRad(sceneAngle), [0, 1, 0]);*/
 
     var brdf = $("brdfsel").value;
     gl.uniform1i(shaderProgram.uBrdfUniform, brdf);
@@ -823,7 +793,7 @@ function init_variables() {
     occupied = [];
     for(var i = 0; i < maxcoord; i++)
         for(var j = 0; j < maxcoord; j++)
-            occupied[i+j*maxcoord] = new point(i,j,-1,0,0,0,0);
+            occupied[i+j*maxcoord] = new point(-1,0,0,0,0);
 
     generadores = [];
     if(sembrado == 0) {
