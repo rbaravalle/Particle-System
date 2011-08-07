@@ -12,9 +12,12 @@ var varparticlecolor;
 var c1, c2;
 var occupied;
 var t = 0;
+var tUlt;
 var particles;
 var sparticles; // arreglo binario con estado de cada particula (viva o muerta)
-var cantPart; // cantidad total de particulas creadas
+
+var vertices = [];
+var colors = [];
 
 var rttFramebuffer;
 var rttTexture;
@@ -45,6 +48,7 @@ var sembrado;
 var muestreo; // establece el intervalo de muestreo de la funcion parametrica
 
 var normals;
+var shaderProgram;
 
 // Arreglos de funciones parametricas
 var fs = [function(xc,yc,radio,t) { // circulo
@@ -144,12 +148,9 @@ function onButtonDown(e)
     var pos = findPos(document.getElementById('canvas'));
     xPos = e.pageX - pos.x;
     yPos = e.pageY - pos.y;
-
     var gx = xPos;
     var gy = (document.getElementById('canvas').height-yPos);
-    cantG++;
-    generadores.push({'x':gx,'y':gy, 'dir': dirSelec});
-   
+    generadores.push({'x':gx,'y':gy, 'dir': dirSelec});   
 }
 
 function initGL(canvas) {
@@ -157,21 +158,15 @@ function initGL(canvas) {
         gl = canvas.getContext("experimental-webgl");
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
-    } catch (e) {
-    }
-    if (!gl) {
-        alert("Could not initialise WebGL, sorry :-(");
-    }
-
+    } catch (e) {}
+    if (!gl) alert("Could not initialise WebGL, sorry :-(");
     canvas.onmousedown=onButtonDown;
 }
 
 
 function getShader(gl, id) {
     var shaderScript = document.getElementById(id);
-    if (!shaderScript) {
-        return null;
-    }
+    if (!shaderScript) return null;
 
     var str = "";
     var k = shaderScript.firstChild;
@@ -193,17 +188,12 @@ function getShader(gl, id) {
 
     gl.shaderSource(shader, str);
     gl.compileShader(shader);
-
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         alert(gl.getShaderInfoLog(shader));
         return null;
     }
-
     return shader;
 }
-
-
-var shaderProgram;
 
 function initShaders() {
     var fragmentShader = getShader(gl, "shader-fs");
@@ -286,7 +276,7 @@ function point(i,r,g,b,a,p) {
     this.a = a || 0;
 }
 
-function particle(i,tiempo, pr,pg,pb,pa, dir,cambia) {
+function particle(i) {
     var c = aleat(generadores.length);
     var gx = generadores[c].x;
     var gy = generadores[c].y;
@@ -312,18 +302,11 @@ function particle(i,tiempo, pr,pg,pb,pa, dir,cambia) {
 
     if(c <= prob1*0.01) cf = c1; else cf = c2;
 
-    if(pr >= 0) {
-        this.r =  pr;
-        this.g =  pg;
-        this.b =  pb;
-        this.a =  pa;
-    }
-    else {
-        this.r = cf[0];
-        this.g = cf[1];
-        this.b = cf[2];
-        this.a = cf[3];
-    }
+    this.r = cf[0];
+    this.g = cf[1];
+    this.b = cf[2];
+    this.a = cf[3];
+
     c = c*2-1;
     this.r += c*varcolor;
     this.g += c*varcolor;
@@ -334,7 +317,7 @@ function particle(i,tiempo, pr,pg,pb,pa, dir,cambia) {
     //this.t = [];
     this.contorno = [];
 
-    this.tiempoDeVida = tiempo || 200
+    this.tiempoDeVida = TIEMPO_VIDA
     this.tActual = 0;
 
     this.tInit = t;
@@ -424,8 +407,7 @@ particle.prototype.add = function(x,y) {
 };
 
 particle.prototype.grow = function() {
-    this.tActual++;
-    
+    this.tActual++;    
     var maxim = this.contorno.length
     var h;
     for(h = 0; h < maxim; h++) {
@@ -433,28 +415,24 @@ particle.prototype.grow = function() {
         var nx = cont.x;
         var ny = cont.y;
         var pos = nx+ny*maxcoord;
-        var o = occupied[nx+ny*maxcoord];
-
+        var o = occupied[pos];
         if(o && !ocupada(pos)) {
             this.add(nx,ny);
             break;
         }
     }
     this.contorno.splice(0,h);
-
-};  
+};
 
 function init_particles() {
     CANT_PARTICLES = parseFloat($('cantp').value);
     CANT_NEW_PARTICLES = parseFloat($('cantnp').value);
     particles = [];
     sparticles = [];
-    cantPart = 0;
     for(var i = 0; i < CANT_PARTICLES; i++) {
-        particles.push(new particle(i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
+        particles.push(new particle(i));
         sparticles.push(true); // la particula esta viva
     }
-    cantPart += CANT_PARTICLES;
 }
 
 particle.prototype.morir = function() {
@@ -470,7 +448,6 @@ function actualizarValores() {
     muestreo = $('muestreo').value;
     sembrado = $('sembrado').value;
     distG = parseFloat($('distG').value);
-    cantG = $('cantG').value;
     prob1 = parseFloat($('c1p').value);
     dirSelec = $('dir').value;
 
@@ -494,15 +471,13 @@ function mover() {
 
     for(var i = 0; i < m.length; i++)
         particles.splice(m[i],1);
-    
 
     // nuevas particulas
-    var ult = cantPart;
+    var ult = sparticles.length;
     for(var i = 0; i < CANT_NEW_PARTICLES; i++) {
-        particles.push(new particle(ult+i,TIEMPO_VIDA,-1,-1,-1,0,-1,true));
+        particles.push(new particle(ult+i));
         sparticles.push(true);
     }
-    cantPart += CANT_NEW_PARTICLES;
 }
 
 
@@ -511,7 +486,6 @@ function degToRad(degrees) {
 }
 
 function dibujarParticulas() {
-
     // dibujamos en este buffer
     if(__3D)     gl.bindFramebuffer(gl.FRAMEBUFFER, rttFramebuffer);
 
@@ -546,19 +520,26 @@ function dibujarParticulas() {
     gl.uniform1i(shaderProgram.uBrdfUniform, 0);
     // /dummy
 
-    var vertices = [];
-    var colors = [];
     var cant = 0;
 
     triangleVertexPositionBuffer = gl.createBuffer();
   	triangleVertexColorBuffer = gl.createBuffer();
     triangleVertexNormalBuffer = gl.createBuffer();
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, (occupied.byteLength/5)*4, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, (occupied.byteLength/5)*3, gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
     for(var j = 0; j < maxcoord2; j++) {
         if(occupied[j].particle > 0) {
             var p = occupied[j];
             var x = j%maxcoord;
             var y = Math.floor(j*m1);
+            
             vertices.push(x*m1,y*m1,0.0);
             colors.push(p.r,p.g,p.b,1.0);
             cant++;
@@ -566,14 +547,12 @@ function dibujarParticulas() {
             if(cant > 512) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-                triangleVertexPositionBuffer.itemSize = 3;
-                triangleVertexPositionBuffer.numItems = cant;
+                //gl.bufferSubData(gl.ARRAY_BUFFER, j, new Float32Array(vertices));
                 gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-               	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-                triangleVertexColorBuffer.itemSize = 4;
-                triangleVertexColorBuffer.numItems = cant;
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors),gl.STATIC_DRAW);
+               	//gl.bufferSubData(gl.ARRAY_BUFFER, j, new Float32Array(colors));
                 gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
                 gl.drawArrays(gl.POINTS, 0, cant);
@@ -584,6 +563,7 @@ function dibujarParticulas() {
             }
         }
     }
+
 
 
     //var colors = [];
@@ -682,7 +662,6 @@ function dibujarEscena() {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sceneIndexBuffer);
     setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, sceneIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
-
 }
 
 
@@ -698,40 +677,29 @@ function animate() {
 
 
 function tick() {
-        if(stop == 1) { // recalcular textura
-            stop = 0;
-            for(var i = 0; i < maxcoord2; i++)
-                delete occupied[i];
-            for(var i = 0; i < particles.length; i++) {
-                /*var pi = particles[i];
-                for(var j = 0; j < pi.t.length; j++)
-                    delete pi.t[j];    */
-                delete particles[i];
-            }
-            init_variables();
+    if(stop == 1) { // recalcular textura
+        stop = 0;
+        for(var i = 0; i < maxcoord2; i++) delete occupied[i];
+        for(var i = 0; i < particles.length; i++) delete particles[i];
+        init_variables();
+    }
+
+    if(animar) { 
+        mover();
+        t++;
+        if(t%REFRESCO == 0 || t== TIEMPO-1) {
+            dibujarParticulas();
+            if(__3D) { dibujarEscena(); animate(); } 
         }
-
-        if(animar) { 
-            mover();
-            t++;
-
-            if(t%REFRESCO == 0 || t== TIEMPO-1) {
-                dibujarParticulas();
-                if(__3D) { dibujarEscena(); animate(); } 
-            }
-            
-            if(t < TIEMPO -1 && particles.length > 0) requestAnimFrame(tick);
-
-//            if(t==TIEMPO-1) {
-                var d2 = new Date();
-                var t2 = d2.getTime();
-                $('iteracion').innerHTML = t;
-                $('contorno').innerHTML = largoCont;
-                $('cantPart').innerHTML = particles.length;
-                $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
-                $('promedioIt').innerHTML = Math.abs(t2-t1)/1000*1/t ;
-//            }
-        }
+        var d2 = new Date();
+        var t2 = d2.getTime();
+        $('iteracion').innerHTML = t;
+        $('contorno').innerHTML = largoCont;
+        $('cantPart').innerHTML = particles.length;
+        $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
+        $('promedioIt').innerHTML = (1000*t/Math.abs(t2-t1)).toFixed(2) ;
+    }
+    if(t < TIEMPO-1 && particles.length > 0) requestAnimFrame(tick);
 }
 
 function ocupada(i) {
@@ -782,18 +750,22 @@ function calcColors() {
     c2 = [parseFloat(jscolor2.color.rgb[0]),parseFloat(jscolor2.color.rgb[1]),parseFloat(jscolor2.color.rgb[2]),parseFloat($('c2a').value)];
 }
 
+/*function init_buffers(){
+}*/
 
 function init_variables() {
 
     actualizarValores();
+    cantG = $('cantG').value;
 
     t = 0;
     vivas = 0;
 
     occupied = [];
-    for(var i = 0; i < maxcoord; i++)
-        for(var j = 0; j < maxcoord; j++)
-            occupied[i+j*maxcoord] = new point(-1,0,0,0,0);
+    for(var i = 0; i < maxcoord2; i++)
+        occupied.push({'particle':-1, 'r': 0, 'g': 0, 'b': 0, 'a': 0});
+
+    //init_buffers();
 
     generadores = [];
     if(sembrado == 0) {
@@ -947,5 +919,4 @@ function webGLStart() {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.enable(gl.DEPTH_TEST);
 }
-
 
