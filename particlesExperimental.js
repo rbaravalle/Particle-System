@@ -534,6 +534,8 @@ function dibujarParticulas() {
     gl.bufferData(gl.ARRAY_BUFFER, (occupied.byteLength/5)*3, gl.DYNAMIC_DRAW);
     gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
+    var vertices = [];
+    var colors = [];
     for(var j = 0; j < maxcoord2; j++) {
         if(occupied[j].particle > 0) {
             var p = occupied[j];
@@ -544,7 +546,7 @@ function dibujarParticulas() {
             colors.push(p.r,p.g,p.b,1.0);
             cant++;
 
-            if(cant > 512) {
+            if(cant > 791) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
                 //gl.bufferSubData(gl.ARRAY_BUFFER, j, new Float32Array(vertices));
@@ -555,56 +557,24 @@ function dibujarParticulas() {
                	//gl.bufferSubData(gl.ARRAY_BUFFER, j, new Float32Array(colors));
                 gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
+                gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexNormalBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+                gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+
                 gl.drawArrays(gl.POINTS, 0, cant);
 
                 cant = 0;
-                vertices = [];
-                colors = [];
+                delete vertices;vertices = [];
+                delete colors; colors = [];
             }
         }
     }
-
-
-
-    //var colors = [];
-        //var p = occupied[i];
-        /*if(p) {
-             //colors.push(p.r,p.g,p.b,1.0);
-             //cant++;
-        }
-        else {
-            colors.push(0.0,0.0,0.0,1.0);
-        }*/
-        /*
-        var x = i%maxcoord;
-        var y = Math.floor(i*m1);
-        vertices.push(x*m1,y*m1,0.0);*/
-
-    /*gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    triangleVertexPositionBuffer.itemSize = 3;
-    triangleVertexPositionBuffer.numItems = maxcoord2;
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
-   	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-    triangleVertexColorBuffer.itemSize = 4;
-   	triangleVertexColorBuffer.numItems = maxcoord2;
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);*/
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexNormalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
-
-    //gl.drawArrays(gl.POINTS, 0, cant);
 
     // dibuja eso en esta textura
     if(__3D) {
         gl.bindTexture(gl.TEXTURE_2D, rttTexture);
         gl.generateMipmap(gl.TEXTURE_2D);
-        gl.bindTexture(gl.TEXTURE_2D, null);      
-
-
+        gl.bindTexture(gl.TEXTURE_2D, null);
         // liberamos
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
@@ -697,7 +667,8 @@ function tick() {
         $('contorno').innerHTML = largoCont;
         $('cantPart').innerHTML = particles.length;
         $('tiempoIt').innerHTML = Math.abs(t2-t1)/1000 ;
-        $('promedioIt').innerHTML = (1000*t/Math.abs(t2-t1)).toFixed(2) ;
+        $('promedioIt').innerHTML = (1000*(t)/Math.abs(t2-t1)).toFixed(2) ;
+        delete d2;
     }
     if(t < TIEMPO-1 && particles.length > 0) requestAnimFrame(tick);
 }
@@ -781,7 +752,7 @@ function init_variables() {
     }
 
     normals = [];
-    for(var i = 0; i < maxcoord2; i++) {
+    for(var i = 0; i < 792; i++) {
         normals.push(0.0,0.0,0.1);
     }
 
